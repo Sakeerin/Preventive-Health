@@ -129,19 +129,6 @@ docker-compose down
 - **PostgreSQL 16** with TimescaleDB (port 5432)
 - **Redis 7** (port 6379)
 
-## 🗺️ Roadmap
-
-- [x] Step 0: Repo Bootstrap
-- [ ] Step 1: Core Schema + Privacy
-- [ ] Step 2: HealthKit Integration
-- [ ] Step 3: Health Connect Integration
-- [ ] Step 4: Normalization + Dashboards
-- [ ] Step 5: Goals + Reminders
-- [ ] Step 6: AI Risk Insights
-- [ ] Step 7: Care Network
-- [ ] Step 8: Admin Portal
-- [ ] Step 9: FHIR Export
-- [ ] Step 10: Hardening
 
 ## 📄 License
 

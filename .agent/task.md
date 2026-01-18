@@ -37,11 +37,11 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Unit tests
 
 ## Step 3: Wearable Ingestion (Health Connect)
-- [ ] Android Health Connect integration
-- [ ] Permission management
-- [ ] Data reading (steps, HR, sleep, exercise)
-- [ ] Offline queue + retries
-- [ ] Play policy compliance docs
+- [x] Android Health Connect integration
+- [x] Permission management
+- [x] Data reading (steps, HR, sleep, exercise)
+- [x] Offline queue + retries
+- [x] Play policy compliance docs
 
 ## Step 4: Normalization + Dashboards
 - [ ] API normalization services
