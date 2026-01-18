@@ -44,12 +44,12 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Play policy compliance docs
 
 ## Step 4: Normalization + Dashboards
-- [ ] API normalization services
-- [ ] Deduplication logic
-- [ ] Daily aggregates computation
-- [ ] Dashboard summaries (7/30-day trends)
-- [ ] Web + Mobile dashboard screens
-- [ ] Bilingual UI support
+- [x] API normalization services
+- [x] Deduplication logic
+- [x] Daily aggregates computation
+- [x] Dashboard summaries (7/30-day trends)
+- [x] Web + Mobile dashboard screens
+- [x] Bilingual UI support
 
 ## Step 5: Goals + Reminders Engine
 - [ ] Goal setting (steps, workouts, sleep, hydration)
