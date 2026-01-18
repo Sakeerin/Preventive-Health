@@ -1,0 +1,656 @@
+// Prisma Schema for Preventive Health Application
+// Database: PostgreSQL with TimescaleDB extension
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & PRIVACY ENTITIES
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  dateOfBirth   DateTime?
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  profile              Profile?
+  consents             Consent[]
+  devices              Device[]
+  sessions             Session[]
+  measurements         Measurement[]
+  sleepSessions        SleepSession[]
+  workoutSessions      WorkoutSession[]
+  dailyAggregates      DailyAggregate[]
+  goals                Goal[]
+  reminderRules        ReminderRule[]
+  notifications        Notification[]
+  insights             Insight[]
+  riskScores           RiskScore[]
+  bookings             Booking[]
+  consultationThreads  ConsultationThread[]
+  shareGrantsGiven     ShareGrant[]          @relation("GrantedBy")
+  shareGrantsReceived  ShareGrant[]          @relation("GrantedTo")
+  auditLogs            AuditLog[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  gender        Gender?
+  height        Float?   // cm
+  weight        Float?   // kg
+  activityLevel ActivityLevel?
+  healthGoals   String[] // Array of goal identifiers
+  timezone      String   @default("UTC")
+  language      String   @default("en")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Consent {
+  id        String      @id @default(uuid())
+  userId    String
+  type      ConsentType
+  granted   Boolean
+  version   String      // Consent document version
+  grantedAt DateTime?
+  revokedAt DateTime?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+}
+
+// ============================================
+// DEVICE & SESSION ENTITIES
+// ============================================
+
+model Device {
+  id           String     @id @default(uuid())
+  userId       String
+  deviceId     String     // Unique device identifier
+  platform     Platform
+  model        String?
+  osVersion    String?
+  appVersion   String?
+  pushToken    String?
+  lastActiveAt DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+  dataSources  DataSource[]
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  deviceId     String?
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  lastActiveAt DateTime  @default(now())
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+model DataSource {
+  id             String         @id @default(uuid())
+  deviceId       String
+  sourceType     DataSourceType
+  sourceName     String         // e.g., "Apple Watch", "Fitbit"
+  isConnected    Boolean        @default(true)
+  lastSyncAt     DateTime?
+  permissionsRaw Json?          // Raw permissions data
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  device       Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  measurements Measurement[]
+
+  @@unique([deviceId, sourceType])
+  @@index([deviceId])
+}
+
+// ============================================
+// HEALTH DATA ENTITIES
+// ============================================
+
+model Measurement {
+  id           String         @id @default(uuid())
+  userId       String
+  dataSourceId String?
+  type         MetricType
+  value        Float
+  unit         String
+  sourceId     String?        // External ID from health platform
+  recordedAt   DateTime
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataSource DataSource? @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, type, recordedAt, sourceId])
+  @@index([userId, type])
+  @@index([userId, recordedAt])
+  @@index([recordedAt])
+}
+
+model SleepSession {
+  id         String       @id @default(uuid())
+  userId     String
+  startTime  DateTime
+  endTime    DateTime
+  duration   Int          // minutes
+  quality    SleepQuality?
+  stages     Json?        // Array of sleep stages
+  sourceId   String?
+  sourceType DataSourceType?
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startTime, sourceId])
+  @@index([userId, startTime])
+}
+
+model WorkoutSession {
+  id               String          @id @default(uuid())
+  userId           String
+  type             String          // Workout type (running, cycling, etc.)
+  startTime        DateTime
+  endTime          DateTime
+  duration         Int             // minutes
+  caloriesBurned   Float?
+  distance         Float?          // meters
+  averageHeartRate Float?
+  maxHeartRate     Float?
+  sourceId         String?
+  sourceType       DataSourceType?
+  metadata         Json?
+  createdAt        DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, startTime, sourceId])
+  @@index([userId, startTime])
+}
+
+model DailyAggregate {
+  id               String   @id @default(uuid())
+  userId           String
+  date             DateTime @db.Date
+  steps            Int      @default(0)
+  activeEnergy     Float    @default(0)  // kcal
+  sleepDuration    Int      @default(0)  // minutes
+  averageHeartRate Float?
+  restingHeartRate Float?
+  workoutCount     Int      @default(0)
+  workoutDuration  Int      @default(0)  // minutes
+  waterIntake      Float?   // ml
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ============================================
+// GOALS & REMINDERS
+// ============================================
+
+model Goal {
+  id          String     @id @default(uuid())
+  userId      String
+  type        GoalType
+  targetValue Float
+  unit        String
+  frequency   Frequency
+  startDate   DateTime   @db.Date
+  endDate     DateTime?  @db.Date
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model ReminderRule {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // Reminder type
+  title         String
+  message       String?
+  schedule      Json     // Cron or schedule config
+  quietHoursStart String? // HH:mm format
+  quietHoursEnd   String? // HH:mm format
+  isActive      Boolean  @default(true)
+  lastTriggered DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model Notification {
+  id        String             @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  status    NotificationStatus @default(PENDING)
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([createdAt])
+}
+
+model Insight {
+  id          String       @id @default(uuid())
+  userId      String
+  type        InsightType
+  title       String
+  description String
+  priority    Priority
+  actionable  Boolean      @default(false)
+  actionType  String?
+  actionTarget String?
+  isRead      Boolean      @default(false)
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+}
+
+// ============================================
+// AI & RISK SCORING
+// ============================================
+
+model RiskModelVersion {
+  id          String      @id @default(uuid())
+  version     String      @unique
+  modelType   String
+  description String?
+  config      Json?
+  isActive    Boolean     @default(false)
+  deployedAt  DateTime?
+  createdAt   DateTime    @default(now())
+
+  riskScores       RiskScore[]
+  modelEvidenceLogs ModelEvidenceLog[]
+}
+
+model RiskScore {
+  id             String   @id @default(uuid())
+  userId         String
+  modelVersionId String
+  category       String
+  level          RiskLevel
+  score          Float    // 0-100
+  confidence     Float    // 0-1
+  factors        Json     // Array of contributing factors
+  createdAt      DateTime @default(now())
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modelVersion RiskModelVersion @relation(fields: [modelVersionId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([userId, category])
+}
+
+model ModelEvidenceLog {
+  id             String   @id @default(uuid())
+  modelVersionId String
+  inputHash      String   // Hash of input data
+  inputSummary   Json     // Summary of input (no PII)
+  outputSummary  Json     // Model output summary
+  driftScore     Float?
+  createdAt      DateTime @default(now())
+
+  modelVersion RiskModelVersion @relation(fields: [modelVersionId], references: [id])
+
+  @@index([modelVersionId, createdAt])
+}
+
+// ============================================
+// CARE NETWORK
+// ============================================
+
+model Provider {
+  id           String        @id @default(uuid())
+  userId       String?       // If provider has a user account
+  type         ProviderType
+  name         String
+  title        String?
+  specialty    String?
+  bio          String?
+  avatarUrl    String?
+  licenseNumber String?
+  isVerified   Boolean       @default(false)
+  isActive     Boolean       @default(true)
+  availability Json?         // Weekly availability schedule
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  bookings            Booking[]
+  consultationThreads ConsultationThread[]
+
+  @@index([type, isActive])
+  @@index([specialty])
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  userId      String
+  providerId  String
+  type        BookingType
+  status      BookingStatus @default(PENDING)
+  scheduledAt DateTime
+  duration    Int           // minutes
+  notes       String?
+  cancelledAt DateTime?
+  cancelReason String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id])
+
+  @@index([userId, status])
+  @@index([providerId, scheduledAt])
+  @@index([scheduledAt])
+}
+
+model ConsultationThread {
+  id         String       @id @default(uuid())
+  userId     String
+  providerId String
+  subject    String?
+  status     ThreadStatus @default(OPEN)
+  closedAt   DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider Provider  @relation(fields: [providerId], references: [id])
+  messages Message[]
+
+  @@index([userId, status])
+  @@index([providerId, status])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  threadId  String
+  senderId  String   // User or Provider ID
+  senderType SenderType
+  content   String
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  thread      ConsultationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([threadId, createdAt])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  messageId   String
+  fileName    String
+  fileType    String
+  fileSize    Int      // bytes
+  storageKey  String   // Cloud storage reference
+  isEncrypted Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// PRIVACY & AUDIT
+// ============================================
+
+model ShareGrant {
+  id           String    @id @default(uuid())
+  grantorId    String    // User granting access
+  granteeId    String    // User/Provider receiving access
+  granteeType  GranteeType
+  dataTypes    String[]  // Which data types are shared
+  expiresAt    DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  grantor User @relation("GrantedBy", fields: [grantorId], references: [id], onDelete: Cascade)
+  grantee User @relation("GrantedTo", fields: [granteeId], references: [id], onDelete: Cascade)
+
+  @@index([grantorId])
+  @@index([granteeId])
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  status     String    @default("success")
+  createdAt  DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum ConsentType {
+  DATA_COLLECTION
+  HEALTH_DATA_SHARING
+  MARKETING
+  ANALYTICS
+  THIRD_PARTY_SHARING
+}
+
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum DataSourceType {
+  HEALTHKIT
+  HEALTH_CONNECT
+  MANUAL
+  DEVICE
+  API
+}
+
+enum MetricType {
+  STEPS
+  HEART_RATE
+  BLOOD_PRESSURE_SYSTOLIC
+  BLOOD_PRESSURE_DIASTOLIC
+  SLEEP
+  ACTIVE_ENERGY
+  RESTING_HEART_RATE
+  WEIGHT
+  BODY_FAT
+  WATER_INTAKE
+  BLOOD_OXYGEN
+  RESPIRATORY_RATE
+}
+
+enum SleepQuality {
+  POOR
+  FAIR
+  GOOD
+  EXCELLENT
+}
+
+enum GoalType {
+  STEPS
+  ACTIVE_ENERGY
+  SLEEP_DURATION
+  WATER_INTAKE
+  WORKOUT_COUNT
+  WEIGHT
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  REMINDER
+  INSIGHT
+  ACHIEVEMENT
+  BOOKING
+  MESSAGE
+  SYSTEM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum InsightType {
+  RISK
+  TREND
+  RECOMMENDATION
+  ACHIEVEMENT
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ProviderType {
+  DOCTOR
+  NURSE
+  NUTRITIONIST
+  COACH
+  THERAPIST
+  OTHER
+}
+
+enum BookingType {
+  VIDEO_CALL
+  PHONE_CALL
+  IN_PERSON
+  CHAT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ThreadStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum SenderType {
+  USER
+  PROVIDER
+  SYSTEM
+}
+
+enum GranteeType {
+  USER
+  PROVIDER
+}

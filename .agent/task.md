@@ -18,16 +18,16 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Setup unified dev command
 
 ## Step 1: Core Schema + Privacy
-- [ ] User, Profile, Consent entities
-- [ ] Device, Session, DataSource entities
-- [ ] Measurement, Session (sleep/workout), DailyAggregate
-- [ ] Goal, ReminderRule, Notification, Insight
-- [ ] RiskModelVersion, RiskScore, ModelEvidenceLog
-- [ ] Provider, Booking, ConsultationThread, Message, Attachment
-- [ ] ShareGrant, AuditLog
-- [ ] Encryption-at-rest strategy
-- [ ] Audit middleware
-- [ ] Seed data
+- [x] User, Profile, Consent entities
+- [x] Device, Session, DataSource entities
+- [x] Measurement, Session (sleep/workout), DailyAggregate
+- [x] Goal, ReminderRule, Notification, Insight
+- [x] RiskModelVersion, RiskScore, ModelEvidenceLog
+- [x] Provider, Booking, ConsultationThread, Message, Attachment
+- [x] ShareGrant, AuditLog
+- [x] Encryption-at-rest strategy
+- [x] Audit middleware
+- [x] Seed data
 
 ## Step 2: Wearable Ingestion (HealthKit)
 - [ ] iOS HealthKit integration
