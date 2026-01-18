@@ -30,11 +30,11 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Seed data
 
 ## Step 2: Wearable Ingestion (HealthKit)
-- [ ] iOS HealthKit integration
-- [ ] Permission requests (steps, energy, workouts, HR, sleep)
-- [ ] Local sync queue
-- [ ] API upload with idempotency
-- [ ] Unit tests
+- [x] iOS HealthKit integration
+- [x] Permission requests (steps, energy, workouts, HR, sleep)
+- [x] Local sync queue
+- [x] API upload with idempotency
+- [x] Unit tests
 
 ## Step 3: Wearable Ingestion (Health Connect)
 - [ ] Android Health Connect integration
