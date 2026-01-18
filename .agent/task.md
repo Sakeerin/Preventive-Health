@@ -1,0 +1,97 @@
+# Preventive Health App - Task Tracker
+
+## Overview
+Building a comprehensive preventive health application with MVP features including health data integration (HealthKit/Health Connect), dashboard, AI risk insights, and care network.
+
+---
+
+## Step 0: Repo Bootstrap
+- [x] Create monorepo structure with Turborepo
+- [x] Setup `apps/mobile` (React Native with Expo)
+- [x] Setup `apps/web` (Next.js 14)
+- [x] Setup `apps/api` (NestJS + Fastify)
+- [x] Setup `packages/shared` (types + zod schemas)
+- [x] Setup `packages/health-connectors` (HealthKit/Health Connect abstractions)
+- [x] Setup `packages/ai` (risk + coach guardrails)
+- [x] Add docker-compose for Postgres + Redis
+- [x] Configure ESLint, Prettier, and Vitest
+- [x] Setup unified dev command
+
+## Step 1: Core Schema + Privacy
+- [ ] User, Profile, Consent entities
+- [ ] Device, Session, DataSource entities
+- [ ] Measurement, Session (sleep/workout), DailyAggregate
+- [ ] Goal, ReminderRule, Notification, Insight
+- [ ] RiskModelVersion, RiskScore, ModelEvidenceLog
+- [ ] Provider, Booking, ConsultationThread, Message, Attachment
+- [ ] ShareGrant, AuditLog
+- [ ] Encryption-at-rest strategy
+- [ ] Audit middleware
+- [ ] Seed data
+
+## Step 2: Wearable Ingestion (HealthKit)
+- [ ] iOS HealthKit integration
+- [ ] Permission requests (steps, energy, workouts, HR, sleep)
+- [ ] Local sync queue
+- [ ] API upload with idempotency
+- [ ] Unit tests
+
+## Step 3: Wearable Ingestion (Health Connect)
+- [ ] Android Health Connect integration
+- [ ] Permission management
+- [ ] Data reading (steps, HR, sleep, exercise)
+- [ ] Offline queue + retries
+- [ ] Play policy compliance docs
+
+## Step 4: Normalization + Dashboards
+- [ ] API normalization services
+- [ ] Deduplication logic
+- [ ] Daily aggregates computation
+- [ ] Dashboard summaries (7/30-day trends)
+- [ ] Web + Mobile dashboard screens
+- [ ] Bilingual UI support
+
+## Step 5: Goals + Reminders Engine
+- [ ] Goal setting (steps, workouts, sleep, hydration)
+- [ ] Reminder engine with quiet hours
+- [ ] Adaptive timing based on user behavior
+- [ ] Weekly summaries
+- [ ] Notification preferences
+
+## Step 6: AI Risk Insights v1
+- [ ] Risk insights module (low/medium/high)
+- [ ] Confidence scores + contributing factors
+- [ ] Guardrails (no diagnosis language)
+- [ ] Model versioning
+- [ ] Monitoring + drift checks
+- [ ] Explainability outputs
+
+## Step 7: Care Network
+- [ ] Provider directory
+- [ ] Availability scheduling
+- [ ] Booking flow
+- [ ] Async chat with attachments
+- [ ] ShareGrants (time-bound access)
+- [ ] Revoke functionality
+- [ ] Audit logs
+
+## Step 8: Admin & Content
+- [ ] Admin portal
+- [ ] Coaching content management
+- [ ] Provider onboarding
+- [ ] Audit logs view
+- [ ] AI model registry
+
+## Step 9: Interop Export (FHIR-friendly)
+- [ ] Health summary export
+- [ ] FHIR Observation mapping
+- [ ] JSON/PDF export
+- [ ] Documentation
+
+## Step 10: Hardening & Compliance
+- [ ] Rate limiting
+- [ ] PII masking in logs
+- [ ] Incident runbook
+- [ ] Threat model
+- [ ] SaMD readiness docs
+- [ ] E2E tests

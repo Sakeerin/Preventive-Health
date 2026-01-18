@@ -1,0 +1,30 @@
+{
+    "expo": {
+        "name": "Preventive Health",
+        "slug": "preventive-health",
+        "version": "1.0.0",
+        "scheme": "preventive-health",
+        "platforms": [
+            "ios",
+            "android"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.preventivehealth.app",
+            "infoPlist": {
+                "NSHealthShareUsageDescription": "We use your health data to provide personalized health insights and recommendations.",
+                "NSHealthUpdateUsageDescription": "We update your health records to track your wellness journey."
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            },
+            "package": "com.preventivehealth.app"
+        },
+        "plugins": [
+            "expo-router"
+        ]
+    }
+}
