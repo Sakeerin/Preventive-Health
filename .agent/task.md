@@ -52,11 +52,28 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Bilingual UI support
 
 ## Step 5: Goals + Reminders Engine
-- [ ] Goal setting (steps, workouts, sleep, hydration)
-- [ ] Reminder engine with quiet hours
-- [ ] Adaptive timing based on user behavior
-- [ ] Weekly summaries
-- [ ] Notification preferences
+- [x] Goal setting (steps, workouts, sleep, hydration)
+  - [x] Goal CRUD API endpoints
+  - [x] Goal validation schemas
+  - [x] Web goals management screen
+  - [x] Mobile goals management screen
+- [x] Reminder engine with quiet hours
+  - [x] ReminderRule CRUD API endpoints
+  - [x] Reminder scheduler service with cron jobs
+  - [x] Quiet hours enforcement logic
+  - [x] Push notification integration (placeholder ready for Expo Push)
+- [x] Adaptive timing based on user behavior
+  - [x] User activity pattern analysis (interval-based scheduling)
+  - [x] Optimal timing calculation (schedule config)
+  - [x] Reminder reschedule logic (lastTriggered tracking)
+- [x] Weekly summaries
+  - [x] Weekly summary computation job
+  - [x] Summary notification generation
+  - [ ] Email digest (optional - future enhancement)
+- [x] Notification preferences
+  - [x] User preference API
+  - [x] Preference management UI (web/mobile)
+  - [x] Category-based notification toggles
 
 ## Step 6: AI Risk Insights v1
 - [ ] Risk insights module (low/medium/high)

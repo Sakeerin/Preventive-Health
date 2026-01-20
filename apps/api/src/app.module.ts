@@ -5,6 +5,9 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database';
 import { HealthModule } from './health';
 import { DashboardModule } from './dashboard';
+import { GoalsModule } from './goals';
+import { RemindersModule } from './reminders';
+import { NotificationsModule } from './notifications';
 
 @Module({
     imports: [
@@ -15,8 +18,12 @@ import { DashboardModule } from './dashboard';
         DatabaseModule,
         HealthModule,
         DashboardModule,
+        GoalsModule,
+        RemindersModule,
+        NotificationsModule,
     ],
     controllers: [AppController],
     providers: [AppService],
 })
 export class AppModule { }
+
