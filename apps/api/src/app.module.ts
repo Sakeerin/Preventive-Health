@@ -8,6 +8,7 @@ import { DashboardModule } from './dashboard';
 import { GoalsModule } from './goals';
 import { RemindersModule } from './reminders';
 import { NotificationsModule } from './notifications';
+import { RiskInsightsModule } from './risk-insights';
 
 @Module({
     imports: [
@@ -21,9 +22,11 @@ import { NotificationsModule } from './notifications';
         GoalsModule,
         RemindersModule,
         NotificationsModule,
+        RiskInsightsModule,
     ],
     controllers: [AppController],
     providers: [AppService],
 })
 export class AppModule { }
+
 

@@ -76,12 +76,31 @@ Building a comprehensive preventive health application with MVP features includi
   - [x] Category-based notification toggles
 
 ## Step 6: AI Risk Insights v1
-- [ ] Risk insights module (low/medium/high)
-- [ ] Confidence scores + contributing factors
-- [ ] Guardrails (no diagnosis language)
-- [ ] Model versioning
-- [ ] Monitoring + drift checks
-- [ ] Explainability outputs
+- [x] Risk insights module (low/medium/high)
+  - [x] Risk category calculations (cardiovascular, sleep, activity)
+  - [x] Overall wellness aggregation
+  - [x] API endpoints (GET/POST risk-insights, calculate, explain)
+  - [x] Web insights page with score gauge
+  - [x] Mobile insights screen with category cards
+- [x] Confidence scores + contributing factors
+  - [x] Confidence based on data availability
+  - [x] Factor contribution tracking
+  - [x] Factor-level explanations
+- [x] Guardrails (no diagnosis language)
+  - [x] Existing guardrails module applied to outputs
+  - [x] Disclaimer enforcement on all risk content
+- [x] Model versioning
+  - [x] RiskModelVersion registry
+  - [x] Model activation/deactivation
+  - [x] Version tracking on scores
+- [x] Monitoring + drift checks
+  - [x] ModelEvidenceLog tracking
+  - [x] Drift score calculation
+  - [x] Daily drift check scheduler
+- [x] Explainability outputs
+  - [x] Human-readable explanations (EN/TH)
+  - [x] Trend analysis
+  - [x] Personalized recommendations
 
 ## Step 7: Care Network
 - [ ] Provider directory
