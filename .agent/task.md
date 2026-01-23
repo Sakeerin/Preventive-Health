@@ -103,13 +103,13 @@ Building a comprehensive preventive health application with MVP features includi
   - [x] Personalized recommendations
 
 ## Step 7: Care Network
-- [ ] Provider directory
-- [ ] Availability scheduling
-- [ ] Booking flow
-- [ ] Async chat with attachments
-- [ ] ShareGrants (time-bound access)
-- [ ] Revoke functionality
-- [ ] Audit logs
+- [x] Provider directory
+- [x] Availability scheduling
+- [x] Booking flow
+- [x] Async chat with attachments
+- [x] ShareGrants (time-bound access)
+- [x] Revoke functionality
+- [x] Audit logs
 
 ## Step 8: Admin & Content
 - [ ] Admin portal

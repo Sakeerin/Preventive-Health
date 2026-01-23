@@ -9,6 +9,7 @@ import { GoalsModule } from './goals';
 import { RemindersModule } from './reminders';
 import { NotificationsModule } from './notifications';
 import { RiskInsightsModule } from './risk-insights';
+import { CareNetworkModule } from './care-network';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { RiskInsightsModule } from './risk-insights';
         RemindersModule,
         NotificationsModule,
         RiskInsightsModule,
+        CareNetworkModule,
     ],
     controllers: [AppController],
     providers: [AppService],
