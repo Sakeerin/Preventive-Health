@@ -13,6 +13,7 @@ import { CareNetworkModule } from './care-network';
 import { AdminModule } from './admin';
 import { ContentModule } from './content';
 import { AuditModule } from './audit';
+import { ExportModule } from './export';
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { AuditModule } from './audit';
         AdminModule,
         ContentModule,
         AuditModule,
+        ExportModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -26,3 +26,17 @@ Developed a dedicated section within the Next.js application (`/admin` namespace
 -   **Audit Logs (`/admin/audit-logs`)**: Real-time table display of auditable user actions across the app.
 
 All tasks for Step 8 are checked off! You can now access the admin portal interfaces by navigating to `http://localhost:3000/admin`.
+
+## Step 9: Interop Export (FHIR-friendly)
+
+I have implemented the generic structure to provide interoperable data exports for patients.
+
+### 1. Data Contract (`packages/shared/src/schemas/fhir.schema.ts`)
+Created Zod validation logic for the foundational FHIR R4 JSON schemas (`Patient`, `Observation`, and `Bundle`). This guarantees the export API remains standards-compliant when exposing health metrics to third-party tools.
+
+### 2. Export API (`apps/api/src/export`)
+Configured a new module tailored entirely for data-export tasks:
+- **`fhir.service.ts`**: Contains the complex domain mapping algorithms taking custom internal metrics and converting them into FHIR-compliant Observations.
+- **`export.controller.ts`**: Serves the standardized document mappings over `/export/fhir` returning a strict FHIR sequence JSON. It also exposes `/export/pdf` for human-readable summaries.
+
+Both services are integrated natively into the `app.module.ts`. With these endpoints online, users can securely query and serialize their metric data out of the silo.

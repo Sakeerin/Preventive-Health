@@ -119,10 +119,10 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] AI model registry
 
 ## Step 9: Interop Export (FHIR-friendly)
-- [ ] Health summary export
-- [ ] FHIR Observation mapping
-- [ ] JSON/PDF export
-- [ ] Documentation
+- [x] Health summary export
+- [x] FHIR Observation mapping
+- [x] JSON/PDF export
+- [x] Documentation
 
 ## Step 10: Hardening & Compliance
 - [ ] Rate limiting

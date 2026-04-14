@@ -257,7 +257,51 @@ preventive-health/
 
 ---
 
-## Next Steps (After Step 8)
+## Step 9: Interop Export (FHIR-friendly)
+
+> [!IMPORTANT]
+> This step introduces FHIR-compliant export functionalities. The platform will support mapping its internal domain entities into standardized FHIR representations (primarily `Patient` and `Observation`) and generating an extract in JSON or a summarized PDF format.
+
+### Proposed Changes
+
+#### Shared Packages (Schemas)
+
+##### [NEW] [packages/shared/src/schemas/fhir.schema.ts](file:///d:/Projects/Preventive-Health/packages/shared/src/schemas/fhir.schema.ts)
+- Base Zod definitions for FHIR `Patient` and `Observation` structures (R4 schema subset).
+
+##### [MODIFY] [packages/shared/src/schemas/index.ts](file:///d:/Projects/Preventive-Health/packages/shared/src/schemas/index.ts)
+- Export the newly created `fhir.schema` definitions.
+
+#### API Engine (apps/api/src/export)
+
+##### [NEW] [apps/api/src/export/export.module.ts](file:///d:/Projects/Preventive-Health/apps/api/src/export/export.module.ts)
+- Main module handling interoperable export logic.
+
+##### [NEW] [apps/api/src/export/export.controller.ts](file:///d:/Projects/Preventive-Health/apps/api/src/export/export.controller.ts)
+- Endpoints offering `/export/fhir` (JSON FHIR Bundle) and `/export/pdf` endpoints.
+
+##### [NEW] [apps/api/src/export/fhir.service.ts](file:///d:/Projects/Preventive-Health/apps/api/src/export/fhir.service.ts)
+- Logic component dedicated to translating our internal schemas (`Measurement`, `Profile`) to the mapped FHIR structure.
+
+##### [NEW] [apps/api/src/export/pdf.service.ts](file:///d:/Projects/Preventive-Health/apps/api/src/export/pdf.service.ts)
+- Service responsible for assembling the mapped data into a synthesized document (Mock implementation for MVP phase).
+
+##### [MODIFY] [apps/api/src/app.module.ts](file:///d:/Projects/Preventive-Health/apps/api/src/app.module.ts)
+- Wire `ExportModule` to the main backend application array.
+
+## Verification Plan
+
+### Automated Tests
+- Validate mock outputs of `/export/fhir` against `fhir.schema.ts` structures to ensure conformance.
+- Verify controller response types match `application/fhir+json` headers where applicable.
+
+### Manual Verification
+- Access the `http://localhost:3001/export/fhir?userId=test` endpoint manually, verifying that a well-formed FHIR Bundle JSON structure is produced.
+- Call the `/export/pdf` equivalent and ensure a structured buffer or base64 PDF stream is responded.
+
+---
+
+## Next Steps (After Step 9)
 
 | Step | Description | Dependencies |
 |------|-------------|--------------|
