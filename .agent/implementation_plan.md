@@ -301,7 +301,50 @@ preventive-health/
 
 ---
 
-## Next Steps (After Step 9)
+## Step 10: Hardening & Compliance
+
+> [!CAUTION]
+> This stage ensures the platform meets the minimum security and regulatory documentation requirements. Proper PII masking, strict rate limiting, and documented threat controls are essential for health-tech application compliance (e.g. HIPAA/GDPR principles).
+
+### Proposed Changes
+
+#### API Security (apps/api)
+
+##### [MODIFY] [apps/api/package.json](file:///d:/Projects/Preventive-Health/apps/api/package.json)
+- Add `@nestjs/throttler` dependency to support request rate limiting.
+
+##### [NEW] [apps/api/src/config/logger.ts](file:///d:/Projects/Preventive-Health/apps/api/src/config/logger.ts)
+- Custom application logger implementing basic PII masking. It parses log payloads and replaces sensitive attributes (e.g., `email`, `firstName`, `lastName`, `birthDate`, `ssn`) with `***`.
+
+##### [MODIFY] [apps/api/src/app.module.ts](file:///d:/Projects/Preventive-Health/apps/api/src/app.module.ts)
+- Integrate `ThrottlerModule` natively to enforce global rate limits (e.g., 100 requests per minute per IP).
+
+#### E2E Testing (apps/api)
+
+##### [NEW] [apps/api/test/app.e2e-spec.ts](file:///d:/Projects/Preventive-Health/apps/api/test/app.e2e-spec.ts)
+- Base end-to-end testing scaffold verifying the API health and basic compliance barriers (like handling of 429 Too Many Requests if we hammer it).
+
+#### Documentation (docs/compliance)
+
+##### [NEW] [docs/compliance/threat-model.md](file:///d:/Projects/Preventive-Health/docs/compliance/threat-model.md)
+- Establishes STRIDE-based threat modeling for the system architecture.
+
+##### [NEW] [docs/compliance/incident-runbook.md](file:///d:/Projects/Preventive-Health/docs/compliance/incident-runbook.md)
+- Steps for responding to data breaches, database downtime, and external dependency failures (HealthKit/Health Connect).
+
+##### [NEW] [docs/compliance/samd-readiness.md](file:///d:/Projects/Preventive-Health/docs/compliance/samd-readiness.md)
+- Outline of Software as a Medical Device (SaMD) requirements indicating our boundaries (non-diagnostic claims vs. actionable care decisions).
+
+## Verification Plan
+
+### Automated Tests
+- Execute `pnpm test` in the API to ensure the PII logger tests pass and E2E limits hit a 429 correctly in test environments.
+
+### Manual Verification
+- Spam the API manually via script or fast browser refreshes to assure Rate Limits block the connection.
+- Output a verbose log simulating a request with an `email` field and ensure the console prints it as `***`.
+
+---
 
 | Step | Description | Dependencies |
 |------|-------------|--------------|

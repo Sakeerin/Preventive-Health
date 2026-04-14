@@ -125,9 +125,9 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Documentation
 
 ## Step 10: Hardening & Compliance
-- [ ] Rate limiting
-- [ ] PII masking in logs
-- [ ] Incident runbook
-- [ ] Threat model
-- [ ] SaMD readiness docs
-- [ ] E2E tests
+- [x] Rate limiting
+- [x] PII masking in logs
+- [x] Incident runbook
+- [x] Threat model
+- [x] SaMD readiness docs
+- [x] E2E tests

@@ -4,12 +4,17 @@ import {
     NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { PiiMaskingLogger } from './config/logger';
 
 async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
         AppModule,
-        new FastifyAdapter({ logger: true })
+        new FastifyAdapter({ logger: false }),
+        { bufferLogs: true }
     );
+
+    // Apply the PII Masking layout globally
+    app.useLogger(new PiiMaskingLogger());
 
     // Enable CORS for development
     app.enableCors({

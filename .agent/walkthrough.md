@@ -40,3 +40,20 @@ Configured a new module tailored entirely for data-export tasks:
 - **`export.controller.ts`**: Serves the standardized document mappings over `/export/fhir` returning a strict FHIR sequence JSON. It also exposes `/export/pdf` for human-readable summaries.
 
 Both services are integrated natively into the `app.module.ts`. With these endpoints online, users can securely query and serialize their metric data out of the silo.
+
+## Step 10: Hardening & Compliance
+
+This represents the final implementation step focusing on production readiness, regulatory alignment, and security boundaries.
+
+### 1. API Security & Integrity
+- **Rate Limiting**: Integrated the `@nestjs/throttler` package natively into `app.module.ts`. This applies a baseline restriction of 100 requests per IP address every minute, neutralizing simple iteration attacks and denial of service events.
+- **PII Masking Logger**: Engineered a tailored `ConsoleLogger` (`PiiMaskingLogger`) replacing the default Fastify adapter logs. The class traverses nested request/response payloads masking sensitive markers including `email`, `ssn`, `birthDate`, and `firstName/lastName` to maintain safe disk IO compliance.
+- **E2E Tests Scaffold**: Provisioned initial integration boundaries via `apps/api/test/app.e2e-spec.ts`, directly targeting baseline connections and simulating throttling exception handles.
+
+### 2. Compliance Document Posture
+Added official documentation in `docs/compliance/` mapping directly to health-tech strictures:
+- **`threat-model.md`**: Outlines a categorized STRIDE approach (Authentication, Zero Trust workflows, RBAC overrides) against known attack vectors.
+- **`incident-runbook.md`**: Provides escalation flows for resolving breaches or severe database failures securely and safely.
+- **`samd-readiness.md`**: Enforces the organizational limits designating the software strictly as a wellness tool, completely sidestepping diagnostic claims which mitigates rigorous Software as a Medical Device (SaMD) FDA implications.
+
+🚀 The Preventive Health Application MVP is now complete and actively functioning from Monorepo initialization through full-tier integrations!

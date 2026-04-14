@@ -14,6 +14,8 @@ import { AdminModule } from './admin';
 import { ContentModule } from './content';
 import { AuditModule } from './audit';
 import { ExportModule } from './export';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
     imports: [
@@ -21,6 +23,10 @@ import { ExportModule } from './export';
             isGlobal: true,
             envFilePath: ['.env.local', '.env'],
         }),
+        ThrottlerModule.forRoot([{
+            ttl: 60000, // 1 minute
+            limit: 100, // 100 requests per IP per minute
+        }]),
         DatabaseModule,
         HealthModule,
         DashboardModule,
@@ -35,7 +41,13 @@ import { ExportModule } from './export';
         ExportModule,
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [
+        AppService,
+        {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard
+        }
+    ],
 })
 export class AppModule { }
 
