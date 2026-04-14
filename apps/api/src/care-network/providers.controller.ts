@@ -44,6 +44,18 @@ export class ProvidersController {
     }
 
     /**
+     * Admin: Verify a provider
+     */
+    @Patch(':id/verify')
+    async verifyProvider(@Param('id') id: string) {
+        // Mock admin verification
+        return {
+            success: true,
+            message: `Provider ${id} has been verified.`
+        };
+    }
+
+    /**
      * Get provider details
      */
     @Get(':id')

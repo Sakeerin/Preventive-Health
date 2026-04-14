@@ -56,6 +56,30 @@ export const riskHistoryQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(30),
 });
 
+// AI Model Registry schema
+export const riskModelVersionSchema = z.object({
+    id: z.string().uuid(),
+    version: z.string().min(1),
+    description: z.string(),
+    isActive: z.boolean(),
+    config: z.any().optional(), // Store thresholds, weights, base scores etc.
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+
+export const createRiskModelVersionSchema = z.object({
+    version: z.string().min(1),
+    description: z.string(),
+    isActive: z.boolean().optional().default(false),
+    config: z.any().optional(),
+});
+
+export const updateRiskModelVersionSchema = z.object({
+    description: z.string().optional(),
+    isActive: z.boolean().optional(),
+    config: z.any().optional(),
+});
+
 // Type exports
 export type RiskLevel = z.infer<typeof riskLevelSchema>;
 export type RiskCategory = z.infer<typeof riskCategorySchema>;
@@ -63,3 +87,6 @@ export type RiskFactor = z.infer<typeof riskFactorSchema>;
 export type RiskScoreResponse = z.infer<typeof riskScoreResponseSchema>;
 export type RiskExplanation = z.infer<typeof riskExplanationSchema>;
 export type RiskHistoryQuery = z.infer<typeof riskHistoryQuerySchema>;
+export type RiskModelVersion = z.infer<typeof riskModelVersionSchema>;
+export type CreateRiskModelVersion = z.infer<typeof createRiskModelVersionSchema>;
+export type UpdateRiskModelVersion = z.infer<typeof updateRiskModelVersionSchema>;

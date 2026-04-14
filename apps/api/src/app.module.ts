@@ -10,6 +10,9 @@ import { RemindersModule } from './reminders';
 import { NotificationsModule } from './notifications';
 import { RiskInsightsModule } from './risk-insights';
 import { CareNetworkModule } from './care-network';
+import { AdminModule } from './admin';
+import { ContentModule } from './content';
+import { AuditModule } from './audit';
 
 @Module({
     imports: [
@@ -25,6 +28,9 @@ import { CareNetworkModule } from './care-network';
         NotificationsModule,
         RiskInsightsModule,
         CareNetworkModule,
+        AdminModule,
+        ContentModule,
+        AuditModule,
     ],
     controllers: [AppController],
     providers: [AppService],

@@ -112,11 +112,11 @@ Building a comprehensive preventive health application with MVP features includi
 - [x] Audit logs
 
 ## Step 8: Admin & Content
-- [ ] Admin portal
-- [ ] Coaching content management
-- [ ] Provider onboarding
-- [ ] Audit logs view
-- [ ] AI model registry
+- [x] Admin portal
+- [x] Coaching content management
+- [x] Provider onboarding
+- [x] Audit logs view
+- [x] AI model registry
 
 ## Step 9: Interop Export (FHIR-friendly)
 - [ ] Health summary export

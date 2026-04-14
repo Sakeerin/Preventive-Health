@@ -185,7 +185,79 @@ preventive-health/
 
 ---
 
-## Next Steps (After Step 0)
+## Step 8: Admin & Content
+
+> [!IMPORTANT]
+> This step introduces the administrative interface and functionality required to manage the platform's content, providers, AI models, and view audit logs for compliance.
+
+### Proposed Changes
+
+#### Shared Packages (Schemas)
+
+##### [NEW] [packages/shared/src/schemas/content.schema.ts](file:///d:/Projects/Preventive-Health/packages/shared/src/schemas/content.schema.ts)
+- Schemas for `CoachingContent`, `Article`, and `Template` management.
+- Zod validations for creating/updating rich text content and associating tags.
+
+##### [MODIFY] [packages/shared/src/schemas/risk-insights.schema.ts](file:///d:/Projects/Preventive-Health/packages/shared/src/schemas/risk-insights.schema.ts)
+- Add `RiskModelVersionSchema` to represent AI models in the registry (id, version, description, isActive, mappings).
+
+##### [MODIFY] [packages/shared/src/schemas/care-network.schema.ts](file:///d:/Projects/Preventive-Health/packages/shared/src/schemas/care-network.schema.ts)
+- Add provider approval status schemas if not fully covered by `isVerified` and `isActive`.
+
+#### API Endpoints (apps/api)
+
+##### [NEW] [apps/api/src/admin/admin.module.ts](file:///d:/Projects/Preventive-Health/apps/api/src/admin/admin.module.ts)
+- Aggregation endpoints for the admin dashboard (e.g., total users, system health stats).
+
+##### [NEW] [apps/api/src/content/content.module.ts](file:///d:/Projects/Preventive-Health/apps/api/src/content/content.module.ts)
+- CRUD endpoints for managing coaching content and guidelines.
+
+##### [NEW] [apps/api/src/risk-insights/model-registry.controller.ts](file:///d:/Projects/Preventive-Health/apps/api/src/risk-insights/model-registry.controller.ts)
+- Endpoints to register, deprecate, and activate `RiskModelVersion` records.
+
+##### [NEW] [apps/api/src/audit/audit.controller.ts](file:///d:/Projects/Preventive-Health/apps/api/src/audit/audit.controller.ts)
+- Secure endpoints specifically for retrieving, filtering, and exporting `AuditLogs`.
+
+##### [MODIFY] [apps/api/src/care-network/provider.controller.ts](file:///d:/Projects/Preventive-Health/apps/api/src/care-network/provider.controller.ts)
+- Add admin-only routes to review, approve, and verify provider profiles.
+
+#### Web Application (apps/web/src/app/admin)
+
+##### [NEW] [apps/web/src/app/admin/layout.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/layout.tsx)
+- Dedicated admin layout with sidebar navigation, separate from the main user web app structure.
+
+##### [NEW] [apps/web/src/app/admin/page.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/page.tsx)
+- Admin dashboard displaying key metrics.
+
+##### [NEW] [apps/web/src/app/admin/providers/page.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/providers/page.tsx)
+- Provider onboarding and approval view. A data table showing pending applications with actions to verify.
+
+##### [NEW] [apps/web/src/app/admin/content/page.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/content/page.tsx)
+- Interface for managing coaching articles and content templates.
+
+##### [NEW] [apps/web/src/app/admin/ai-models/page.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/ai-models/page.tsx)
+- AI model registry. View all model versions, select active models, and view model configuration.
+
+##### [NEW] [apps/web/src/app/admin/audit-logs/page.tsx](file:///d:/Projects/Preventive-Health/apps/web/src/app/admin/audit-logs/page.tsx)
+- Real-time or paginated table to review system events and audit information.
+
+## Verification Plan
+
+### Automated Tests
+- Execute `pnpm test --filter=api` to verify admin endpoints.
+- Validate role-based access control (RBAC) tests so only admins can successfully call these endpoints.
+- Validate `content.schema.ts` structure and ensure proper validation of payload inputs.
+
+### Manual Verification
+- **Admin UI**: Ensure `/admin` layout is fully functional, separate from `/dashboard`. Check sidebar navigation on web.
+- **Provider Onboarding**: Manually toggle the verification state of a provider and verify the update propagates correctly.
+- **Audit Logs**: Perform a user action (e.g. read risk scores) and verify the event surfaces correctly in the `/admin/audit-logs` table.
+- **Content Management**: Create a test coaching content piece and verify it stores and fetches via the API.
+- **AI Models**: Add a new Dummy Risk Model version and successfully switch the active flag.
+
+---
+
+## Next Steps (After Step 8)
 
 | Step | Description | Dependencies |
 |------|-------------|--------------|
