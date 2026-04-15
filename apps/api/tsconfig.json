@@ -18,6 +18,12 @@
         "forceConsistentCasingInFileNames": true,
         "noFallthroughCasesInSwitch": true,
         "paths": {
+            "@preventive-health/database": [
+                "../../packages/database/src"
+            ],
+            "@preventive-health/shared": [
+                "../../packages/shared/src"
+            ],
             "@/*": [
                 "src/*"
             ]

@@ -185,7 +185,7 @@ export class NotificationsService {
                 type,
                 title,
                 body,
-                data: data || null,
+                data: data ? (data as any) : undefined,
                 status: 'PENDING',
             },
         });

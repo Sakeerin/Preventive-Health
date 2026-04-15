@@ -1,7 +1,18 @@
-import { Controller, Get, Post, Query, Body, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Post,
+    UseGuards,
+} from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('api/dashboard')
+@UseGuards(SessionAuthGuard)
 export class DashboardController {
     constructor(private readonly dashboardService: DashboardService) { }
 
@@ -9,12 +20,8 @@ export class DashboardController {
      * Get dashboard summary for a user
      */
     @Get('summary')
-    async getDashboardSummary(@Query('userId') userId: string) {
-        if (!userId) {
-            throw new BadRequestException('userId is required');
-        }
-
-        const summary = await this.dashboardService.getDashboardSummary(userId);
+    async getDashboardSummary(@CurrentUser() user: AuthenticatedUser) {
+        const summary = await this.dashboardService.getDashboardSummary(user.id);
 
         return {
             success: true,
@@ -27,13 +34,21 @@ export class DashboardController {
      */
     @Post('compute-aggregate')
     @HttpCode(HttpStatus.OK)
-    async computeAggregate(@Body() body: { userId: string; date?: string }) {
-        if (!body.userId) {
-            throw new BadRequestException('userId is required');
+    async computeAggregate(
+        @CurrentUser() user: AuthenticatedUser,
+        @Body() body: unknown
+    ) {
+        const dateInput =
+            body && typeof body === 'object' && 'date' in body
+                ? (body as { date?: string }).date
+                : undefined;
+
+        const date = dateInput ? new Date(dateInput) : new Date();
+        if (Number.isNaN(date.getTime())) {
+            throw new BadRequestException('date must be a valid ISO date');
         }
 
-        const date = body.date ? new Date(body.date) : new Date();
-        await this.dashboardService.computeDailyAggregate(body.userId, date);
+        await this.dashboardService.computeDailyAggregate(user.id, date);
 
         return {
             success: true,

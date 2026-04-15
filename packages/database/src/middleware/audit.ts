@@ -99,7 +99,7 @@ export function auditMiddleware(
                         action: auditAction,
                         resource: model,
                         resourceId,
-                        details,
+                        details: details as any,
                         ipAddress,
                         userAgent,
                     },

@@ -13,6 +13,10 @@ export class GoalsService {
         const startDate = input.startDate || new Date();
         startDate.setHours(0, 0, 0, 0);
 
+        if (input.endDate && input.endDate < startDate) {
+            throw new BadRequestException('endDate must be greater than or equal to startDate');
+        }
+
         // Check for duplicate active goal of same type
         const existingGoal = await this.prisma.goal.findFirst({
             where: {
@@ -98,6 +102,10 @@ export class GoalsService {
     ): Promise<Goal> {
         await this.getGoalById(userId, goalId);
 
+        if (input.startDate && input.endDate && input.endDate < input.startDate) {
+            throw new BadRequestException('endDate must be greater than or equal to startDate');
+        }
+
         return this.prisma.goal.update({
             where: { id: goalId },
             data: {
@@ -164,46 +172,68 @@ export class GoalsService {
             where: {
                 userId,
                 type: 'WATER_INTAKE',
-                recordedAt: { gte: today },
+                recordedAt: { gte: monthStart },
             },
         });
-        const todayWaterIntake = waterMeasurements.reduce((sum, m) => sum + m.value, 0);
+        const weightMeasurements = await this.prisma.measurement.findMany({
+            where: {
+                userId,
+                type: 'WEIGHT',
+                recordedAt: { gte: monthStart },
+            },
+            orderBy: { recordedAt: 'desc' },
+        });
+
+        const dailyWaterIntake = sumMeasurementsWithinRange(waterMeasurements, today, today);
+        const weeklyWaterIntake = sumMeasurementsWithinRange(waterMeasurements, weekStart, today);
+        const monthlyWaterIntake = sumMeasurementsWithinRange(waterMeasurements, monthStart, today);
 
         return goals.map((goal) => {
             let currentValue = 0;
             const aggregates =
-                goal.frequency === 'DAILY' ? [todayAggregate].filter(Boolean) :
+                goal.frequency === 'DAILY' ? [todayAggregate].filter(isAggregate) :
                     goal.frequency === 'WEEKLY' ? weeklyAggregates :
                         monthlyAggregates;
 
             switch (goal.type) {
                 case 'STEPS':
-                    currentValue = aggregates.reduce((sum, a) => sum + (a?.steps ?? 0), 0);
+                    currentValue = aggregates.reduce((sum, aggregate) => sum + aggregate.steps, 0);
                     break;
                 case 'ACTIVE_ENERGY':
-                    currentValue = aggregates.reduce((sum, a) => sum + (a?.activeEnergy ?? 0), 0);
+                    currentValue = aggregates.reduce(
+                        (sum, aggregate) => sum + aggregate.activeEnergy,
+                        0
+                    );
                     break;
                 case 'SLEEP_DURATION':
-                    currentValue = aggregates.reduce((sum, a) => sum + (a?.sleepDuration ?? 0), 0);
+                    currentValue = aggregates.reduce(
+                        (sum, aggregate) => sum + aggregate.sleepDuration,
+                        0
+                    );
                     if (goal.frequency !== 'DAILY') {
                         currentValue = currentValue / Math.max(aggregates.length, 1); // Average for weekly/monthly
                     }
                     break;
                 case 'WATER_INTAKE':
-                    // For water, use measurement data
-                    if (goal.frequency === 'DAILY') {
-                        currentValue = todayWaterIntake;
-                    } else {
-                        currentValue = aggregates.reduce((sum, a) => sum + (a?.waterIntake ?? 0), 0);
-                    }
+                    currentValue =
+                        goal.frequency === 'DAILY'
+                            ? dailyWaterIntake
+                            : goal.frequency === 'WEEKLY'
+                                ? weeklyWaterIntake
+                                : monthlyWaterIntake;
                     break;
                 case 'WORKOUT_COUNT':
-                    currentValue = aggregates.reduce((sum, a) => sum + (a?.workoutCount ?? 0), 0);
+                    currentValue = aggregates.reduce(
+                        (sum, aggregate) => sum + aggregate.workoutCount,
+                        0
+                    );
                     break;
                 case 'WEIGHT':
-                    // Weight is typically a single measurement, get most recent
-                    const weightMeasurement = todayAggregate; // simplified
-                    currentValue = 0; // Would need separate weight tracking
+                    currentValue = getLatestWeightValue(weightMeasurements, goal.frequency, {
+                        today,
+                        weekStart,
+                        monthStart,
+                    });
                     break;
             }
 
@@ -221,4 +251,49 @@ export class GoalsService {
             };
         });
     }
+}
+
+function isAggregate<T>(value: T | null): value is T {
+    return value !== null;
+}
+
+function sumMeasurementsWithinRange(
+    measurements: Array<{ recordedAt: Date; value: number }>,
+    startDate: Date,
+    endDate: Date
+): number {
+    const rangeStart = new Date(startDate);
+    rangeStart.setHours(0, 0, 0, 0);
+
+    const rangeEnd = new Date(endDate);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    return measurements
+        .filter(
+            (measurement) =>
+                measurement.recordedAt >= rangeStart && measurement.recordedAt <= rangeEnd
+        )
+        .reduce((sum, measurement) => sum + measurement.value, 0);
+}
+
+function getLatestWeightValue(
+    measurements: Array<{ recordedAt: Date; value: number }>,
+    frequency: Frequency,
+    dates: { today: Date; weekStart: Date; monthStart: Date }
+): number {
+    const rangeStart =
+        frequency === 'DAILY'
+            ? dates.today
+            : frequency === 'WEEKLY'
+                ? dates.weekStart
+                : dates.monthStart;
+
+    const rangeStartAtMidnight = new Date(rangeStart);
+    rangeStartAtMidnight.setHours(0, 0, 0, 0);
+
+    const match = measurements.find(
+        (measurement) => measurement.recordedAt >= rangeStartAtMidnight
+    );
+
+    return match?.value ?? 0;
 }

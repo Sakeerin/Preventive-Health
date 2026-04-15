@@ -8,11 +8,15 @@ import {
     HttpCode,
     HttpStatus,
     BadRequestException,
+    UseGuards,
 } from '@nestjs/common';
 import { HealthService } from './health.service';
 import { CreateMeasurementsDto } from './dto/create-measurements.dto';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
+import { createMeasurementSchema, metricTypeSchema } from '@preventive-health/shared';
 
 @Controller('api/health')
+@UseGuards(SessionAuthGuard)
 export class HealthController {
     constructor(private readonly healthService: HealthService) { }
 
@@ -23,6 +27,7 @@ export class HealthController {
     @Post('measurements')
     @HttpCode(HttpStatus.CREATED)
     async createMeasurements(
+        @CurrentUser() user: AuthenticatedUser,
         @Body() dto: CreateMeasurementsDto,
         @Headers('idempotency-key') idempotencyKey?: string
     ) {
@@ -30,9 +35,35 @@ export class HealthController {
             throw new BadRequestException('No measurements provided');
         }
 
+        const normalizedMeasurements = dto.measurements.map((measurement) => {
+            const parsedType = metricTypeSchema.safeParse(measurement.type);
+            if (!parsedType.success) {
+                throw new BadRequestException(`Unsupported metric type: ${measurement.type}`);
+            }
+
+            const parsedMeasurement = createMeasurementSchema.safeParse({
+                ...measurement,
+                userId: user.id,
+                recordedAt: new Date(measurement.recordedAt),
+            });
+
+            if (!parsedMeasurement.success) {
+                throw new BadRequestException(parsedMeasurement.error.flatten());
+            }
+
+            return {
+                ...measurement,
+                type: parsedType.data,
+                recordedAt: new Date(measurement.recordedAt).toISOString(),
+            };
+        });
+
         // Check idempotency
         if (idempotencyKey) {
-            const existing = await this.healthService.checkIdempotency(idempotencyKey);
+            const existing = await this.healthService.checkIdempotency(
+                user.id,
+                idempotencyKey
+            );
             if (existing) {
                 return {
                     success: true,
@@ -44,7 +75,8 @@ export class HealthController {
         }
 
         const result = await this.healthService.createMeasurements(
-            dto.measurements,
+            user.id,
+            normalizedMeasurements,
             idempotencyKey
         );
 
@@ -61,18 +93,29 @@ export class HealthController {
      */
     @Get('daily-aggregates')
     async getDailyAggregates(
-        @Query('userId') userId: string,
+        @CurrentUser() user: AuthenticatedUser,
         @Query('startDate') startDate: string,
         @Query('endDate') endDate?: string
     ) {
-        if (!userId || !startDate) {
-            throw new BadRequestException('userId and startDate are required');
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = endDate ? new Date(endDate) : undefined;
+
+        if (Number.isNaN(parsedStartDate.getTime())) {
+            throw new BadRequestException('startDate must be a valid ISO date');
+        }
+
+        if (parsedEndDate && Number.isNaN(parsedEndDate.getTime())) {
+            throw new BadRequestException('endDate must be a valid ISO date');
+        }
+
+        if (parsedEndDate && parsedEndDate < parsedStartDate) {
+            throw new BadRequestException('endDate must be greater than or equal to startDate');
         }
 
         const aggregates = await this.healthService.getDailyAggregates(
-            userId,
-            new Date(startDate),
-            endDate ? new Date(endDate) : undefined
+            user.id,
+            parsedStartDate,
+            parsedEndDate
         );
 
         return {
@@ -86,22 +129,46 @@ export class HealthController {
      */
     @Get('measurements')
     async getMeasurements(
-        @Query('userId') userId: string,
+        @CurrentUser() user: AuthenticatedUser,
         @Query('type') type: string,
         @Query('startDate') startDate: string,
         @Query('endDate') endDate?: string,
         @Query('limit') limit?: string
     ) {
-        if (!userId || !type || !startDate) {
-            throw new BadRequestException('userId, type, and startDate are required');
+        const parsedType = metricTypeSchema.safeParse(type);
+        if (!parsedType.success) {
+            throw new BadRequestException(`Unsupported metric type: ${type}`);
+        }
+
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = endDate ? new Date(endDate) : undefined;
+        const parsedLimit = limit ? Number(limit) : undefined;
+
+        if (Number.isNaN(parsedStartDate.getTime())) {
+            throw new BadRequestException('startDate must be a valid ISO date');
+        }
+
+        if (parsedEndDate && Number.isNaN(parsedEndDate.getTime())) {
+            throw new BadRequestException('endDate must be a valid ISO date');
+        }
+
+        if (parsedEndDate && parsedEndDate < parsedStartDate) {
+            throw new BadRequestException('endDate must be greater than or equal to startDate');
+        }
+
+        if (
+            parsedLimit !== undefined &&
+            (!Number.isInteger(parsedLimit) || parsedLimit <= 0 || parsedLimit > 500)
+        ) {
+            throw new BadRequestException('limit must be an integer between 1 and 500');
         }
 
         const measurements = await this.healthService.getMeasurements(
-            userId,
-            type,
-            new Date(startDate),
-            endDate ? new Date(endDate) : undefined,
-            limit ? parseInt(limit, 10) : undefined
+            user.id,
+            parsedType.data,
+            parsedStartDate,
+            parsedEndDate,
+            parsedLimit
         );
 
         return {
@@ -116,15 +183,17 @@ export class HealthController {
     @Post('compute-aggregates')
     @HttpCode(HttpStatus.OK)
     async computeAggregates(
-        @Body() body: { userId: string; date: string }
+        @CurrentUser() user: AuthenticatedUser,
+        @Body() body: { date: string }
     ) {
-        if (!body.userId || !body.date) {
-            throw new BadRequestException('userId and date are required');
+        const parsedDate = new Date(body.date);
+        if (Number.isNaN(parsedDate.getTime())) {
+            throw new BadRequestException('date must be a valid ISO date');
         }
 
         const aggregate = await this.healthService.computeDailyAggregate(
-            body.userId,
-            new Date(body.date)
+            user.id,
+            parsedDate
         );
 
         return {

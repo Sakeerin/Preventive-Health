@@ -53,20 +53,24 @@ export class RiskInsightsService {
      */
     async getLatestRiskScores(userId: string): Promise<RiskScore[]> {
         const categories = ['OVERALL_WELLNESS', 'CARDIOVASCULAR', 'SLEEP_QUALITY', 'ACTIVITY_LEVEL'];
+        const scores = await this.prisma.riskScore.findMany({
+            where: {
+                userId,
+                category: { in: categories },
+            },
+            orderBy: [{ category: 'asc' }, { createdAt: 'desc' }],
+        });
 
-        const latestScores: RiskScore[] = [];
-
-        for (const category of categories) {
-            const score = await this.prisma.riskScore.findFirst({
-                where: { userId, category },
-                orderBy: { createdAt: 'desc' },
-            });
-            if (score) {
-                latestScores.push(score);
+        const latestByCategory = new Map<string, RiskScore>();
+        for (const score of scores) {
+            if (!latestByCategory.has(score.category)) {
+                latestByCategory.set(score.category, score);
             }
         }
 
-        return latestScores;
+        return categories
+            .map((category) => latestByCategory.get(category))
+            .filter((score): score is RiskScore => Boolean(score));
     }
 
     /**
@@ -141,22 +145,21 @@ export class RiskInsightsService {
         const categoryResults = this.calculateCategoryRisks(aggregates);
 
         // Store risk scores
-        const scores: RiskScore[] = [];
-
-        for (const result of categoryResults) {
-            const score = await this.prisma.riskScore.create({
-                data: {
-                    userId,
-                    modelVersionId: activeModel.id,
-                    category: result.category,
-                    level: result.level as RiskLevel,
-                    score: result.score,
-                    confidence: result.confidence,
-                    factors: result.factors as any,
-                },
-            });
-            scores.push(score);
-        }
+        const scores = await this.prisma.$transaction(
+            categoryResults.map((result) =>
+                this.prisma.riskScore.create({
+                    data: {
+                        userId,
+                        modelVersionId: activeModel.id,
+                        category: result.category,
+                        level: result.level as RiskLevel,
+                        score: result.score,
+                        confidence: result.confidence,
+                        factors: result.factors as any,
+                    },
+                })
+            )
+        );
 
         // Log model evidence
         await this.logModelEvidence(activeModel.id, aggregates, categoryResults);
@@ -175,7 +178,7 @@ export class RiskInsightsService {
      */
     async getExplanation(userId: string, scoreId: string): Promise<RiskExplanation> {
         const score = await this.getRiskScoreById(userId, scoreId);
-        const factors = score.factors as RiskFactor[];
+        const factors = score.factors as unknown as RiskFactor[];
 
         // Get historical scores for trend
         const history = await this.getRiskHistory(userId, {

@@ -5,14 +5,14 @@ import {
     Param,
     Body,
     Query,
+    UseGuards,
 } from '@nestjs/common';
 import { CareNetworkService } from './care-network.service';
 import { GranteeType } from '@preventive-health/database';
-
-// Placeholder for authentication
-const MOCK_USER_ID = 'mock-user-id';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('share-grants')
+@UseGuards(SessionAuthGuard)
 export class ShareGrantsController {
     constructor(private readonly careNetworkService: CareNetworkService) { }
 
@@ -20,10 +20,12 @@ export class ShareGrantsController {
      * Get user's share grants
      */
     @Get()
-    async getShareGrants(@Query('includeExpired') includeExpired?: string) {
-        const userId = MOCK_USER_ID;
+    async getShareGrants(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('includeExpired') includeExpired?: string
+    ) {
         const grants = await this.careNetworkService.getUserShareGrants(
-            userId,
+            user.id,
             includeExpired === 'true'
         );
         return {
@@ -36,9 +38,11 @@ export class ShareGrantsController {
      * Get grant details
      */
     @Get(':id')
-    async getShareGrant(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const grant = await this.careNetworkService.getShareGrantById(userId, id);
+    async getShareGrant(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const grant = await this.careNetworkService.getShareGrantById(user.id, id);
         return {
             success: true,
             data: grant,
@@ -50,6 +54,7 @@ export class ShareGrantsController {
      */
     @Post()
     async createShareGrant(
+        @CurrentUser() user: AuthenticatedUser,
         @Body() body: {
             granteeId: string;
             granteeType: GranteeType;
@@ -58,8 +63,7 @@ export class ShareGrantsController {
             durationDays?: number;
         }
     ) {
-        const userId = MOCK_USER_ID;
-        const grant = await this.careNetworkService.createShareGrant(userId, body);
+        const grant = await this.careNetworkService.createShareGrant(user.id, body);
         return {
             success: true,
             data: grant,
@@ -71,9 +75,11 @@ export class ShareGrantsController {
      * Revoke share grant
      */
     @Post(':id/revoke')
-    async revokeShareGrant(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const grant = await this.careNetworkService.revokeShareGrant(userId, id);
+    async revokeShareGrant(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const grant = await this.careNetworkService.revokeShareGrant(user.id, id);
         return {
             success: true,
             data: grant,
@@ -83,6 +89,7 @@ export class ShareGrantsController {
 }
 
 @Controller('audit-logs')
+@UseGuards(SessionAuthGuard)
 export class AuditLogsController {
     constructor(private readonly careNetworkService: CareNetworkService) { }
 
@@ -91,6 +98,7 @@ export class AuditLogsController {
      */
     @Get()
     async getAuditLogs(
+        @CurrentUser() user: AuthenticatedUser,
         @Query('action') action?: string,
         @Query('resource') resource?: string,
         @Query('startDate') startDate?: string,
@@ -98,8 +106,7 @@ export class AuditLogsController {
         @Query('page') page?: string,
         @Query('limit') limit?: string
     ) {
-        const userId = MOCK_USER_ID;
-        const result = await this.careNetworkService.getAuditLogs(userId, {
+        const result = await this.careNetworkService.getAuditLogs(user.id, {
             action,
             resource,
             startDate,

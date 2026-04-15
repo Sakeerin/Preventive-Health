@@ -1,16 +1,13 @@
 import {
     Controller,
     Get,
-    Post,
     Patch,
     Param,
-    Body,
     Query,
+    UseGuards,
 } from '@nestjs/common';
 import { CareNetworkService } from './care-network.service';
-
-// Placeholder for authentication
-const MOCK_USER_ID = 'mock-user-id';
+import { Roles, RolesGuard, SessionAuthGuard } from '../auth';
 
 @Controller('providers')
 export class ProvidersController {
@@ -47,6 +44,8 @@ export class ProvidersController {
      * Admin: Verify a provider
      */
     @Patch(':id/verify')
+    @UseGuards(SessionAuthGuard, RolesGuard)
+    @Roles('admin')
     async verifyProvider(@Param('id') id: string) {
         // Mock admin verification
         return {

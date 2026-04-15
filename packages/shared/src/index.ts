@@ -1,5 +1,7 @@
 // Types
-export * from './types';
+export * from './types/health';
+export * from './types/user';
+export type { RiskScore, Insight, InsightAction } from './types/risk';
 
 // Schemas
 export * from './schemas';

@@ -3,6 +3,9 @@
         "strict": true,
         "baseUrl": ".",
         "paths": {
+            "@preventive-health/shared": [
+                "../../packages/shared/src"
+            ],
             "@/*": [
                 "./*"
             ]

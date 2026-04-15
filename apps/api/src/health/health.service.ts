@@ -1,5 +1,6 @@
+import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, MetricType, DataSourceType } from '@preventive-health/database';
+import { PrismaClient, MetricType } from '@preventive-health/database';
 
 interface MeasurementInput {
     type: string;
@@ -8,7 +9,6 @@ interface MeasurementInput {
     recordedAt: string;
     source: string;
     sourceId?: string;
-    userId: string;
     metadata?: Record<string, unknown>;
 }
 
@@ -17,24 +17,50 @@ interface IdempotencyRecord {
     createdAt: Date;
 }
 
+const IDEMPOTENCY_RESOURCE = 'HealthMeasurements';
+const IDEMPOTENCY_ACTION = 'IDEMPOTENCY_KEY';
+const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class HealthService {
-    // In-memory idempotency cache (use Redis in production)
-    private idempotencyCache = new Map<string, IdempotencyRecord>();
-
     constructor(private readonly prisma: PrismaClient) { }
 
     /**
      * Check if a request with this idempotency key was already processed
      */
-    async checkIdempotency(key: string): Promise<IdempotencyRecord | null> {
-        return this.idempotencyCache.get(key) ?? null;
+    async checkIdempotency(
+        userId: string,
+        key: string
+    ): Promise<IdempotencyRecord | null> {
+        const idempotencyEntry = await this.prisma.auditLog.findFirst({
+            where: {
+                userId,
+                action: IDEMPOTENCY_ACTION,
+                resource: IDEMPOTENCY_RESOURCE,
+                resourceId: this.hashIdempotencyKey(userId, key),
+                createdAt: {
+                    gte: new Date(Date.now() - IDEMPOTENCY_TTL_MS),
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        if (!idempotencyEntry) {
+            return null;
+        }
+
+        const details = idempotencyEntry.details as { count?: number } | null;
+        return {
+            count: details?.count ?? 0,
+            createdAt: idempotencyEntry.createdAt,
+        };
     }
 
     /**
      * Create multiple measurements with deduplication
      */
     async createMeasurements(
+        userId: string,
         measurements: MeasurementInput[],
         idempotencyKey?: string
     ): Promise<{ count: number }> {
@@ -46,10 +72,10 @@ export class HealthService {
                 await this.prisma.measurement.upsert({
                     where: {
                         userId_type_recordedAt_sourceId: {
-                            userId: m.userId,
+                            userId,
                             type: this.mapMetricType(m.type),
                             recordedAt: new Date(m.recordedAt),
-                            sourceId: m.sourceId ?? null,
+                            sourceId: m.sourceId ?? '',
                         },
                     },
                     update: {
@@ -58,12 +84,12 @@ export class HealthService {
                         metadata: m.metadata as any,
                     },
                     create: {
-                        userId: m.userId,
+                        userId,
                         type: this.mapMetricType(m.type),
                         value: m.value,
                         unit: m.unit,
                         recordedAt: new Date(m.recordedAt),
-                        sourceId: m.sourceId,
+                        sourceId: m.sourceId ?? '',
                         metadata: m.metadata as any,
                     },
                 });
@@ -73,17 +99,17 @@ export class HealthService {
             }
         }
 
-        // Store idempotency record
         if (idempotencyKey) {
-            this.idempotencyCache.set(idempotencyKey, {
-                count: createdCount,
-                createdAt: new Date(),
+            await this.prisma.auditLog.create({
+                data: {
+                    userId,
+                    action: IDEMPOTENCY_ACTION,
+                    resource: IDEMPOTENCY_RESOURCE,
+                    resourceId: this.hashIdempotencyKey(userId, idempotencyKey),
+                    details: { count: createdCount } as any,
+                    status: 'success',
+                },
             });
-
-            // Clean up old entries after 24 hours
-            setTimeout(() => {
-                this.idempotencyCache.delete(idempotencyKey);
-            }, 24 * 60 * 60 * 1000);
         }
 
         return { count: createdCount };
@@ -253,5 +279,9 @@ export class HealthService {
         };
 
         return mapping[type.toLowerCase()] ?? ('STEPS' as MetricType);
+    }
+
+    private hashIdempotencyKey(userId: string, key: string): string {
+        return createHash('sha256').update(`${userId}:${key}`).digest('hex');
     }
 }

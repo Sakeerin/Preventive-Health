@@ -21,7 +21,11 @@
                 "name": "next"
             }
         ],
+        "baseUrl": ".",
         "paths": {
+            "@preventive-health/shared": [
+                "../../packages/shared/src"
+            ],
             "@/*": [
                 "./src/*"
             ]

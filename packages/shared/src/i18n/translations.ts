@@ -33,6 +33,7 @@ export interface Translations {
         noData: string;
         syncNow: string;
         lastSynced: string;
+        demoData: string;
     };
     goals: {
         title: string;
@@ -101,6 +102,7 @@ export const translations: Record<Locale, Translations> = {
             noData: 'No data available',
             syncNow: 'Sync Now',
             lastSynced: 'Last synced',
+            demoData: 'Showing demo data until a session token is available.',
         },
         goals: {
             title: 'Goals',
@@ -165,15 +167,16 @@ export const translations: Record<Locale, Translations> = {
             goals: 'เป้าหมาย',
             insights: 'ข้อมูลเชิงลึก',
             noData: 'ไม่มีข้อมูล',
-            syncNow: 'ซิงค์ตอนนี้',
-            lastSynced: 'ซิงค์ล่าสุด',
+            syncNow: 'ซิงก์ตอนนี้',
+            lastSynced: 'ซิงก์ล่าสุด',
+            demoData: 'กำลังแสดงข้อมูลตัวอย่างจนกว่าจะมี session token',
         },
         goals: {
             title: 'เป้าหมาย',
             dailySteps: 'ก้าวเดินรายวัน',
             sleepGoal: 'เป้าหมายการนอน',
-            waterGoal: 'เป้าหมายดื่มน้ำ',
-            workoutGoal: 'เป้าหมายออกกำลังกาย',
+            waterGoal: 'เป้าหมายการดื่มน้ำ',
+            workoutGoal: 'เป้าหมายการออกกำลังกาย',
             progress: 'ความคืบหน้า',
             completed: 'สำเร็จแล้ว',
             remaining: 'เหลืออีก',
@@ -188,14 +191,14 @@ export const translations: Record<Locale, Translations> = {
         },
         health: {
             connectDevice: 'เชื่อมต่ออุปกรณ์',
-            syncHealth: 'ซิงค์ข้อมูลสุขภาพ',
-            lastSync: 'ซิงค์ล่าสุด',
+            syncHealth: 'ซิงก์ข้อมูลสุขภาพ',
+            lastSync: 'ซิงก์ล่าสุด',
             permissionsRequired: 'ต้องการสิทธิ์เข้าถึงข้อมูลสุขภาพ',
             grantPermissions: 'ให้สิทธิ์',
         },
         units: {
             steps: 'ก้าว',
-            kcal: 'กิโลแคลอรี่',
+            kcal: 'กิโลแคลอรี',
             minutes: 'นาที',
             hours: 'ชม.',
             bpm: 'ครั้ง/นาที',
@@ -205,23 +208,14 @@ export const translations: Record<Locale, Translations> = {
     },
 };
 
-/**
- * Get translations for a locale
- */
 export function getTranslations(locale: Locale = 'en'): Translations {
     return translations[locale] || translations.en;
 }
 
-/**
- * Format number with locale-specific formatting
- */
 export function formatNumber(value: number, locale: Locale = 'en'): string {
     return new Intl.NumberFormat(locale === 'th' ? 'th-TH' : 'en-US').format(value);
 }
 
-/**
- * Format date with locale-specific formatting
- */
 export function formatDate(date: Date, locale: Locale = 'en'): string {
     return new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-US', {
         year: 'numeric',
@@ -230,9 +224,6 @@ export function formatDate(date: Date, locale: Locale = 'en'): string {
     }).format(date);
 }
 
-/**
- * Format time with locale-specific formatting
- */
 export function formatTime(date: Date, locale: Locale = 'en'): string {
     return new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-US', {
         hour: '2-digit',

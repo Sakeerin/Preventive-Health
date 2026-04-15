@@ -9,45 +9,61 @@ import {
     Query,
     HttpCode,
     HttpStatus,
+    UseGuards,
 } from '@nestjs/common';
 import { RemindersService } from './reminders.service';
 import { createReminderSchema, updateReminderSchema } from '@preventive-health/shared';
-
-// TODO: Replace with actual auth decorator
-const MOCK_USER_ID = 'mock-user-id';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('reminders')
+@UseGuards(SessionAuthGuard)
 export class RemindersController {
     constructor(private readonly remindersService: RemindersService) { }
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async createReminder(@Body() body: unknown) {
+    async createReminder(
+        @CurrentUser() user: AuthenticatedUser,
+        @Body() body: unknown
+    ) {
         const validated = createReminderSchema.parse(body);
-        return this.remindersService.createReminder(MOCK_USER_ID, validated);
+        return this.remindersService.createReminder(user.id, validated);
     }
 
     @Get()
-    async getReminders(@Query('activeOnly') activeOnly?: string) {
-        return this.remindersService.getReminders(MOCK_USER_ID, {
+    async getReminders(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('activeOnly') activeOnly?: string
+    ) {
+        return this.remindersService.getReminders(user.id, {
             activeOnly: activeOnly === 'true',
         });
     }
 
     @Get(':id')
-    async getReminder(@Param('id') id: string) {
-        return this.remindersService.getReminderById(MOCK_USER_ID, id);
+    async getReminder(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        return this.remindersService.getReminderById(user.id, id);
     }
 
     @Patch(':id')
-    async updateReminder(@Param('id') id: string, @Body() body: unknown) {
+    async updateReminder(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string,
+        @Body() body: unknown
+    ) {
         const validated = updateReminderSchema.parse(body);
-        return this.remindersService.updateReminder(MOCK_USER_ID, id, validated);
+        return this.remindersService.updateReminder(user.id, id, validated);
     }
 
     @Delete(':id')
     @HttpCode(HttpStatus.NO_CONTENT)
-    async deleteReminder(@Param('id') id: string) {
-        await this.remindersService.deleteReminder(MOCK_USER_ID, id);
+    async deleteReminder(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        await this.remindersService.deleteReminder(user.id, id);
     }
 }

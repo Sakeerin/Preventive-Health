@@ -7,11 +7,10 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { RiskInsightsService } from './risk-insights.service';
-
-// Placeholder for authentication
-const MOCK_USER_ID = 'mock-user-id';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('risk-insights')
+@UseGuards(SessionAuthGuard)
 export class RiskInsightsController {
     constructor(private readonly riskInsightsService: RiskInsightsService) { }
 
@@ -19,9 +18,8 @@ export class RiskInsightsController {
      * Get latest risk scores for the current user
      */
     @Get()
-    async getLatestRiskScores() {
-        const userId = MOCK_USER_ID; // Replace with auth
-        const scores = await this.riskInsightsService.getLatestRiskScores(userId);
+    async getLatestRiskScores(@CurrentUser() user: AuthenticatedUser) {
+        const scores = await this.riskInsightsService.getLatestRiskScores(user.id);
         return {
             success: true,
             data: scores,
@@ -33,12 +31,12 @@ export class RiskInsightsController {
      */
     @Get('history')
     async getRiskHistory(
+        @CurrentUser() user: AuthenticatedUser,
         @Query('category') category?: string,
         @Query('days') days?: string,
         @Query('limit') limit?: string
     ) {
-        const userId = MOCK_USER_ID;
-        const history = await this.riskInsightsService.getRiskHistory(userId, {
+        const history = await this.riskInsightsService.getRiskHistory(user.id, {
             category,
             days: days ? parseInt(days, 10) : undefined,
             limit: limit ? parseInt(limit, 10) : undefined,
@@ -53,9 +51,8 @@ export class RiskInsightsController {
      * Trigger new risk calculation
      */
     @Post('calculate')
-    async calculateRiskScores() {
-        const userId = MOCK_USER_ID;
-        const scores = await this.riskInsightsService.calculateRiskScores(userId);
+    async calculateRiskScores(@CurrentUser() user: AuthenticatedUser) {
+        const scores = await this.riskInsightsService.calculateRiskScores(user.id);
         return {
             success: true,
             data: scores,
@@ -69,9 +66,11 @@ export class RiskInsightsController {
      * Get specific risk score
      */
     @Get(':id')
-    async getRiskScore(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const score = await this.riskInsightsService.getRiskScoreById(userId, id);
+    async getRiskScore(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const score = await this.riskInsightsService.getRiskScoreById(user.id, id);
         return {
             success: true,
             data: score,
@@ -82,9 +81,11 @@ export class RiskInsightsController {
      * Get explainability output for a risk score
      */
     @Get(':id/explain')
-    async getExplanation(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const explanation = await this.riskInsightsService.getExplanation(userId, id);
+    async getExplanation(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const explanation = await this.riskInsightsService.getExplanation(user.id, id);
         return {
             success: true,
             data: explanation,

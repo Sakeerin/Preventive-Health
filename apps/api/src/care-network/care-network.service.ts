@@ -1,8 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient, BookingStatus, ThreadStatus, SenderType, GranteeType, ProviderType, BookingType } from '@preventive-health/database';
-
-// Placeholder for authentication - will be replaced with actual auth
-const MOCK_USER_ID = 'mock-user-id';
 
 interface ProviderFilter {
     type?: ProviderType;

@@ -5,7 +5,6 @@ export interface MeasurementDto {
     recordedAt: string;
     source: string;
     sourceId?: string;
-    userId: string;
     metadata?: Record<string, unknown>;
 }
 

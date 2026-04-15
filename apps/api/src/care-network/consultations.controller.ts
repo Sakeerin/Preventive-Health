@@ -6,14 +6,14 @@ import {
     Param,
     Body,
     Query,
+    UseGuards,
 } from '@nestjs/common';
 import { CareNetworkService } from './care-network.service';
 import { ThreadStatus } from '@preventive-health/database';
-
-// Placeholder for authentication
-const MOCK_USER_ID = 'mock-user-id';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('consultations')
+@UseGuards(SessionAuthGuard)
 export class ConsultationsController {
     constructor(private readonly careNetworkService: CareNetworkService) { }
 
@@ -21,10 +21,12 @@ export class ConsultationsController {
      * Get user's consultation threads
      */
     @Get()
-    async getThreads(@Query('status') status?: string) {
-        const userId = MOCK_USER_ID;
+    async getThreads(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('status') status?: string
+    ) {
         const threads = await this.careNetworkService.getUserThreads(
-            userId,
+            user.id,
             status as ThreadStatus
         );
         return {
@@ -37,9 +39,11 @@ export class ConsultationsController {
      * Get thread with messages
      */
     @Get(':id')
-    async getThread(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const thread = await this.careNetworkService.getThreadById(userId, id);
+    async getThread(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const thread = await this.careNetworkService.getThreadById(user.id, id);
         return {
             success: true,
             data: thread,
@@ -51,14 +55,14 @@ export class ConsultationsController {
      */
     @Post()
     async createThread(
+        @CurrentUser() user: AuthenticatedUser,
         @Body() body: {
             providerId: string;
             subject?: string;
             initialMessage?: string;
         }
     ) {
-        const userId = MOCK_USER_ID;
-        const thread = await this.careNetworkService.createThread(userId, body);
+        const thread = await this.careNetworkService.createThread(user.id, body);
         return {
             success: true,
             data: thread,
@@ -71,11 +75,11 @@ export class ConsultationsController {
      */
     @Post(':id/messages')
     async sendMessage(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id') id: string,
         @Body() body: { content: string }
     ) {
-        const userId = MOCK_USER_ID;
-        const message = await this.careNetworkService.sendMessage(userId, id, body.content);
+        const message = await this.careNetworkService.sendMessage(user.id, id, body.content);
         return {
             success: true,
             data: message,
@@ -86,9 +90,11 @@ export class ConsultationsController {
      * Close consultation thread
      */
     @Patch(':id/close')
-    async closeThread(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const thread = await this.careNetworkService.closeThread(userId, id);
+    async closeThread(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const thread = await this.careNetworkService.closeThread(user.id, id);
         return {
             success: true,
             data: thread,

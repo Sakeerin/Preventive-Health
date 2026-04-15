@@ -6,14 +6,14 @@ import {
     Param,
     Body,
     Query,
+    UseGuards,
 } from '@nestjs/common';
 import { CareNetworkService } from './care-network.service';
 import { BookingStatus, BookingType } from '@preventive-health/database';
-
-// Placeholder for authentication
-const MOCK_USER_ID = 'mock-user-id';
+import { CurrentUser, SessionAuthGuard, type AuthenticatedUser } from '../auth';
 
 @Controller('bookings')
+@UseGuards(SessionAuthGuard)
 export class BookingsController {
     constructor(private readonly careNetworkService: CareNetworkService) { }
 
@@ -21,10 +21,12 @@ export class BookingsController {
      * Get user's bookings
      */
     @Get()
-    async getBookings(@Query('status') status?: string) {
-        const userId = MOCK_USER_ID;
+    async getBookings(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('status') status?: string
+    ) {
         const bookings = await this.careNetworkService.getUserBookings(
-            userId,
+            user.id,
             status as BookingStatus
         );
         return {
@@ -37,9 +39,11 @@ export class BookingsController {
      * Get booking details
      */
     @Get(':id')
-    async getBooking(@Param('id') id: string) {
-        const userId = MOCK_USER_ID;
-        const booking = await this.careNetworkService.getBookingById(userId, id);
+    async getBooking(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id') id: string
+    ) {
+        const booking = await this.careNetworkService.getBookingById(user.id, id);
         return {
             success: true,
             data: booking,
@@ -51,6 +55,7 @@ export class BookingsController {
      */
     @Post()
     async createBooking(
+        @CurrentUser() user: AuthenticatedUser,
         @Body() body: {
             providerId: string;
             type: BookingType;
@@ -59,8 +64,7 @@ export class BookingsController {
             notes?: string;
         }
     ) {
-        const userId = MOCK_USER_ID;
-        const booking = await this.careNetworkService.createBooking(userId, body);
+        const booking = await this.careNetworkService.createBooking(user.id, body);
         return {
             success: true,
             data: booking,
@@ -73,6 +77,7 @@ export class BookingsController {
      */
     @Patch(':id')
     async updateBooking(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id') id: string,
         @Body() body: {
             status?: BookingStatus;
@@ -80,8 +85,7 @@ export class BookingsController {
             notes?: string;
         }
     ) {
-        const userId = MOCK_USER_ID;
-        const booking = await this.careNetworkService.updateBooking(userId, id, body);
+        const booking = await this.careNetworkService.updateBooking(user.id, id, body);
         return {
             success: true,
             data: booking,
@@ -94,11 +98,11 @@ export class BookingsController {
      */
     @Post(':id/cancel')
     async cancelBooking(
+        @CurrentUser() user: AuthenticatedUser,
         @Param('id') id: string,
         @Body() body: { reason?: string }
     ) {
-        const userId = MOCK_USER_ID;
-        const booking = await this.careNetworkService.cancelBooking(userId, id, body.reason);
+        const booking = await this.careNetworkService.cancelBooking(user.id, id, body.reason);
         return {
             success: true,
             data: booking,

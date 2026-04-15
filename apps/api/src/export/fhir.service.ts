@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FhirBundle, FhirPatient, FhirObservation } from '@shared/schemas';
+import { FhirBundle, FhirPatient, FhirObservation } from '@preventive-health/shared';
 
 @Injectable()
 export class FhirService {

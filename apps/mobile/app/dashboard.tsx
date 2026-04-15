@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    View,
-    Text,
+    Dimensions,
+    RefreshControl,
     ScrollView,
     StyleSheet,
+    Text,
     TouchableOpacity,
-    RefreshControl,
-    Dimensions,
+    View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 
-// Types
 type Locale = 'en' | 'th';
 
 interface DashboardData {
@@ -31,7 +31,9 @@ interface DashboardData {
     }>;
 }
 
-// Translations
+const SESSION_TOKEN_KEY = 'preventive-health-session-token';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+
 const translations = {
     en: {
         title: 'Dashboard',
@@ -44,25 +46,26 @@ const translations = {
         water: 'Water',
         goals: 'Goals',
         syncNow: 'Sync Now',
+        demoData: 'Showing demo data until a session token is available.',
         units: { steps: 'steps', kcal: 'kcal', hours: 'hrs', bpm: 'bpm', ml: 'ml' },
     },
     th: {
         title: 'แดชบอร์ด',
         today: 'วันนี้',
         steps: 'ก้าวเดิน',
-        activeEnergy: 'พลังงาน',
+        activeEnergy: 'พลังงานที่ใช้',
         sleep: 'การนอน',
-        heartRate: 'หัวใจ',
-        workouts: 'ออกกำลังกาย',
+        heartRate: 'อัตราการเต้นหัวใจ',
+        workouts: 'การออกกำลังกาย',
         water: 'น้ำดื่ม',
         goals: 'เป้าหมาย',
-        syncNow: 'ซิงค์ตอนนี้',
-        units: { steps: 'ก้าว', kcal: 'กิโลแคลอรี่', hours: 'ชม.', bpm: 'ครั้ง/นาที', ml: 'มล.' },
+        syncNow: 'ซิงก์ตอนนี้',
+        demoData: 'กำลังแสดงข้อมูลตัวอย่างจนกว่าจะมี session token',
+        units: { steps: 'ก้าว', kcal: 'กิโลแคลอรี', hours: 'ชม.', bpm: 'ครั้ง/นาที', ml: 'มล.' },
     },
 };
 
-// Mock data
-const mockData: DashboardData = {
+const demoData: DashboardData = {
     today: {
         steps: 8432,
         activeEnergy: 342,
@@ -84,19 +87,46 @@ export default function DashboardScreen() {
     const [locale, setLocale] = useState<Locale>('en');
     const [data, setData] = useState<DashboardData | null>(null);
     const [refreshing, setRefreshing] = useState(false);
+    const [usingDemoData, setUsingDemoData] = useState(false);
     const t = translations[locale];
+
+    const loadData = useCallback(() => {
+        const run = async () => {
+            try {
+                const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+                if (!token) {
+                    setData(demoData);
+                    setUsingDemoData(true);
+                    return;
+                }
+
+                const response = await fetch(`${API_URL}/api/dashboard/summary`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Dashboard request failed with status ${response.status}`);
+                }
+
+                const payload = (await response.json()) as { data?: DashboardData };
+                setData(payload.data ?? demoData);
+                setUsingDemoData(!payload.data);
+            } catch {
+                setData(demoData);
+                setUsingDemoData(true);
+            } finally {
+                setRefreshing(false);
+            }
+        };
+
+        void run();
+    }, []);
 
     useEffect(() => {
         loadData();
-    }, []);
-
-    const loadData = useCallback(() => {
-        // Simulate API call
-        setTimeout(() => {
-            setData(mockData);
-            setRefreshing(false);
-        }, 500);
-    }, []);
+    }, [loadData]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -104,7 +134,7 @@ export default function DashboardScreen() {
     }, [loadData]);
 
     const toggleLocale = () => {
-        setLocale((prev) => (prev === 'en' ? 'th' : 'en'));
+        setLocale((previous) => (previous === 'en' ? 'th' : 'en'));
     };
 
     if (!data) {
@@ -119,14 +149,13 @@ export default function DashboardScreen() {
         <View style={styles.container}>
             <StatusBar style="light" />
 
-            {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{t.title}</Text>
                 <View style={styles.headerActions}>
                     <TouchableOpacity onPress={toggleLocale} style={styles.langButton}>
                         <Text style={styles.langButtonText}>{locale === 'en' ? 'TH' : 'EN'}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.syncButton}>
+                    <TouchableOpacity onPress={onRefresh} style={styles.syncButton}>
                         <Text style={styles.syncButtonText}>{t.syncNow}</Text>
                     </TouchableOpacity>
                 </View>
@@ -135,9 +164,20 @@ export default function DashboardScreen() {
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#818cf8" />}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#818cf8"
+                    />
+                }
             >
-                {/* Today's Stats */}
+                {usingDemoData && (
+                    <View style={styles.noticeBanner}>
+                        <Text style={styles.noticeText}>{t.demoData}</Text>
+                    </View>
+                )}
+
                 <Text style={styles.sectionTitle}>{t.today}</Text>
                 <View style={styles.statsGrid}>
                     <StatCard
@@ -170,7 +210,6 @@ export default function DashboardScreen() {
                     />
                 </View>
 
-                {/* Goals */}
                 <Text style={styles.sectionTitle}>{t.goals}</Text>
                 {data.goals.map((goal) => (
                     <GoalCard key={goal.id} goal={goal} />
@@ -207,7 +246,7 @@ function StatCard({
 
 function GoalCard({ goal }: { goal: DashboardData['goals'][0] }) {
     const goalLabels: Record<string, string> = {
-        STEPS: '🚶 Steps',
+        STEPS: '👟 Steps',
         SLEEP: '😴 Sleep',
         WATER: '💧 Water',
     };
@@ -299,6 +338,19 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 20,
         paddingBottom: 100,
+    },
+    noticeBanner: {
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+        borderColor: 'rgba(245, 158, 11, 0.35)',
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 16,
+    },
+    noticeText: {
+        color: '#fde68a',
+        fontSize: 13,
     },
     sectionTitle: {
         fontSize: 16,

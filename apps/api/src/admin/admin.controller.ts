@@ -1,6 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Roles, RolesGuard, SessionAuthGuard } from '../auth';
 
 @Controller('admin')
+@UseGuards(SessionAuthGuard, RolesGuard)
+@Roles('admin')
 export class AdminController {
     @Get('stats')
     getAdminStats() {

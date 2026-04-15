@@ -5,9 +5,10 @@ import { DashboardService } from './dashboard.service';
 import { WeeklySummaryService } from './weekly-summary.service';
 import { NotificationsModule } from '../notifications';
 import { DatabaseModule } from '../database';
+import { GoalsModule } from '../goals';
 
 @Module({
-    imports: [ScheduleModule.forRoot(), NotificationsModule, DatabaseModule],
+    imports: [ScheduleModule.forRoot(), NotificationsModule, DatabaseModule, GoalsModule],
     controllers: [DashboardController],
     providers: [DashboardService, WeeklySummaryService],
     exports: [DashboardService, WeeklySummaryService],

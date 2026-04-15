@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaClient, MetricType } from '@preventive-health/database';
+import { GoalsService } from '../goals';
 
 interface TrendData {
     date: string;
@@ -45,7 +46,10 @@ interface InsightSummary {
 
 @Injectable()
 export class DashboardService {
-    constructor(private readonly prisma: PrismaClient) { }
+    constructor(
+        private readonly prisma: PrismaClient,
+        private readonly goalsService: GoalsService
+    ) { }
 
     /**
      * Get dashboard summary for a user
@@ -175,60 +179,15 @@ export class DashboardService {
      * Get goal progress
      */
     private async getGoalProgress(userId: string): Promise<GoalProgress[]> {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const goals = await this.prisma.goal.findMany({
-            where: {
-                userId,
-                isActive: true,
-                OR: [
-                    { endDate: null },
-                    { endDate: { gte: today } },
-                ],
-            },
-        });
-
-        const todayAggregate = await this.prisma.dailyAggregate.findUnique({
-            where: { userId_date: { userId, date: today } },
-        });
-
-        return goals.map((goal) => {
-            let currentValue = 0;
-
-            // Map goal type to aggregate field
-            switch (goal.type) {
-                case 'STEPS':
-                    currentValue = todayAggregate?.steps ?? 0;
-                    break;
-                case 'ACTIVE_ENERGY':
-                    currentValue = todayAggregate?.activeEnergy ?? 0;
-                    break;
-                case 'SLEEP_DURATION':
-                    currentValue = todayAggregate?.sleepDuration ?? 0;
-                    break;
-                case 'WORKOUT_DURATION':
-                    currentValue = todayAggregate?.workoutDuration ?? 0;
-                    break;
-                case 'WORKOUT_COUNT':
-                    currentValue = todayAggregate?.workoutCount ?? 0;
-                    break;
-            }
-
-            const progress = Math.min(
-                100,
-                Math.round((currentValue / goal.targetValue) * 100)
-            );
-
-            return {
-                id: goal.id,
-                type: goal.type,
-                targetValue: goal.targetValue,
-                currentValue,
-                unit: goal.unit,
-                progress,
-            };
-        });
+        const progress = await this.goalsService.getGoalProgress(userId);
+        return progress.map((goal) => ({
+            id: goal.id,
+            type: goal.type,
+            targetValue: goal.targetValue,
+            currentValue: goal.currentValue,
+            unit: goal.unit,
+            progress: goal.progress,
+        }));
     }
 
     /**
@@ -267,31 +226,29 @@ export class DashboardService {
         endOfDay.setHours(23, 59, 59, 999);
 
         // Get all measurements for the day
-        const measurements = await this.prisma.measurement.findMany({
-            where: {
-                userId,
-                recordedAt: { gte: startOfDay, lte: endOfDay },
-            },
-        });
-
-        // Get sleep sessions
-        const sleepSessions = await this.prisma.sleepSession.findMany({
-            where: {
-                userId,
-                startTime: {
-                    gte: new Date(startOfDay.getTime() - 12 * 60 * 60 * 1000),
-                    lte: endOfDay,
+        const [measurements, sleepSessions, workouts] = await Promise.all([
+            this.prisma.measurement.findMany({
+                where: {
+                    userId,
+                    recordedAt: { gte: startOfDay, lte: endOfDay },
                 },
-            },
-        });
-
-        // Get workouts
-        const workouts = await this.prisma.workoutSession.findMany({
-            where: {
-                userId,
-                startTime: { gte: startOfDay, lte: endOfDay },
-            },
-        });
+            }),
+            this.prisma.sleepSession.findMany({
+                where: {
+                    userId,
+                    startTime: {
+                        gte: new Date(startOfDay.getTime() - 12 * 60 * 60 * 1000),
+                        lte: endOfDay,
+                    },
+                },
+            }),
+            this.prisma.workoutSession.findMany({
+                where: {
+                    userId,
+                    startTime: { gte: startOfDay, lte: endOfDay },
+                },
+            }),
+        ]);
 
         // Calculate aggregates
         const steps = sumByType(measurements, 'STEPS');
@@ -359,12 +316,22 @@ export class DashboardService {
             select: { id: true },
         });
 
-        for (const user of users) {
-            try {
-                await this.computeDailyAggregate(user.id, yesterday);
-            } catch (error) {
-                console.error(`Failed to compute aggregate for user ${user.id}:`, error);
-            }
+        const batchSize = 20;
+        for (let index = 0; index < users.length; index += batchSize) {
+            const batch = users.slice(index, index + batchSize);
+            const results = await Promise.allSettled(
+                batch.map((user) => this.computeDailyAggregate(user.id, yesterday))
+            );
+
+            results.forEach((result, resultIndex) => {
+                if (result.status === 'rejected') {
+                    const failedUser = batch[resultIndex];
+                    console.error(
+                        `Failed to compute aggregate for user ${failedUser.id}:`,
+                        result.reason
+                    );
+                }
+            });
         }
     }
 }

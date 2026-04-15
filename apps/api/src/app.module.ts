@@ -16,6 +16,7 @@ import { AuditModule } from './audit';
 import { ExportModule } from './export';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthModule } from './auth';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { APP_GUARD } from '@nestjs/core';
             ttl: 60000, // 1 minute
             limit: 100, // 100 requests per IP per minute
         }]),
+        AuthModule,
         DatabaseModule,
         HealthModule,
         DashboardModule,

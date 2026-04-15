@@ -1,6 +1,9 @@
-import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Roles, RolesGuard, SessionAuthGuard } from '../auth';
 
 @Controller('admin/ai-models')
+@UseGuards(SessionAuthGuard, RolesGuard)
+@Roles('admin')
 export class ModelRegistryController {
     @Get()
     getModels() {
