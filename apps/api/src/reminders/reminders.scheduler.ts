@@ -87,29 +87,44 @@ export class RemindersScheduler {
         for (const notification of pendingNotifications) {
             try {
                 // TODO: Integrate with Expo Push Notifications or FCM
-                // For now, just mark as sent
                 const hasPushToken = notification.user.devices.length > 0;
+
+                if (!hasPushToken) {
+                    // No push device — mark as delivered (in-app only)
+                    await this.prisma.notification.update({
+                        where: { id: notification.id },
+                        data: { status: 'DELIVERED', sentAt: new Date() },
+                    });
+                    continue;
+                }
+
+                // Attempt push delivery to all registered devices
+                let sendError: unknown = null;
+                for (const device of notification.user.devices) {
+                    try {
+                        await this.sendPushNotification(device.pushToken!, {
+                            title: notification.title,
+                            body: notification.body,
+                            data: notification.data as Record<string, unknown>,
+                        });
+                    } catch (err) {
+                        sendError = err;
+                        this.logger.error(
+                            `Failed to push to device ${device.id} for notification ${notification.id}:`,
+                            err
+                        );
+                    }
+                }
 
                 await this.prisma.notification.update({
                     where: { id: notification.id },
                     data: {
-                        status: hasPushToken ? 'SENT' : 'DELIVERED',
+                        status: sendError ? 'FAILED' : 'SENT',
                         sentAt: new Date(),
                     },
                 });
-
-                if (hasPushToken) {
-                    // Send to each device
-                    for (const device of notification.user.devices) {
-                        await this.sendPushNotification(device.pushToken!, {
-                            title: notification.title,
-                            body: notification.body,
-                            data: notification.data as Record<string, any>,
-                        });
-                    }
-                }
             } catch (error) {
-                this.logger.error(`Failed to send notification ${notification.id}:`, error);
+                this.logger.error(`Failed to process notification ${notification.id}:`, error);
                 await this.prisma.notification.update({
                     where: { id: notification.id },
                     data: { status: 'FAILED' },

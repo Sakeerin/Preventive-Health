@@ -221,51 +221,53 @@ export class CareNetworkService {
     }
 
     async createBooking(userId: string, dto: CreateBookingDto) {
-        // Verify provider exists
-        const provider = await this.getProviderById(dto.providerId);
+        // Verify provider exists before entering transaction
+        await this.getProviderById(dto.providerId);
 
         const scheduledAt = new Date(dto.scheduledAt);
         const duration = dto.duration || 30;
 
-        // Check if the slot is available
-        const conflictingBooking = await this.prisma.booking.findFirst({
-            where: {
-                providerId: dto.providerId,
-                status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
-                scheduledAt: {
-                    gte: new Date(scheduledAt.getTime() - duration * 60 * 1000),
-                    lt: new Date(scheduledAt.getTime() + duration * 60 * 1000),
-                },
-            },
-        });
-
-        if (conflictingBooking) {
-            throw new BadRequestException('Time slot is not available');
-        }
-
-        const booking = await this.prisma.booking.create({
-            data: {
-                userId,
-                providerId: dto.providerId,
-                type: dto.type,
-                scheduledAt,
-                duration,
-                notes: dto.notes,
-                status: BookingStatus.PENDING,
-            },
-            include: {
-                provider: {
-                    select: {
-                        id: true,
-                        name: true,
-                        type: true,
-                        specialty: true,
+        // Wrap conflict check + create atomically to prevent double-booking race condition
+        const booking = await this.prisma.$transaction(async (tx) => {
+            const conflictingBooking = await tx.booking.findFirst({
+                where: {
+                    providerId: dto.providerId,
+                    status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
+                    scheduledAt: {
+                        gte: new Date(scheduledAt.getTime() - duration * 60 * 1000),
+                        lt: new Date(scheduledAt.getTime() + duration * 60 * 1000),
                     },
                 },
-            },
+            });
+
+            if (conflictingBooking) {
+                throw new BadRequestException('Time slot is not available');
+            }
+
+            return tx.booking.create({
+                data: {
+                    userId,
+                    providerId: dto.providerId,
+                    type: dto.type,
+                    scheduledAt,
+                    duration,
+                    notes: dto.notes,
+                    status: BookingStatus.PENDING,
+                },
+                include: {
+                    provider: {
+                        select: {
+                            id: true,
+                            name: true,
+                            type: true,
+                            specialty: true,
+                        },
+                    },
+                },
+            });
         });
 
-        // Log audit
+        // Log audit outside transaction (non-critical)
         await this.createAuditLog(userId, 'booking_created', 'Booking', booking.id, {
             providerId: dto.providerId,
             scheduledAt: dto.scheduledAt,

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaClient, MetricType } from '@preventive-health/database';
 import { GoalsService } from '../goals';
@@ -46,6 +46,8 @@ interface InsightSummary {
 
 @Injectable()
 export class DashboardService {
+    private readonly logger = new Logger(DashboardService.name);
+
     constructor(
         private readonly prisma: PrismaClient,
         private readonly goalsService: GoalsService
@@ -326,7 +328,7 @@ export class DashboardService {
             results.forEach((result, resultIndex) => {
                 if (result.status === 'rejected') {
                     const failedUser = batch[resultIndex];
-                    console.error(
+                    this.logger.error(
                         `Failed to compute aggregate for user ${failedUser.id}:`,
                         result.reason
                     );

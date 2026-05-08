@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaClient, MetricType } from '@preventive-health/database';
 
 interface MeasurementInput {
@@ -23,12 +23,14 @@ const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class HealthService {
+    private readonly logger = new Logger(HealthService.name);
+
     constructor(private readonly prisma: PrismaClient) { }
 
     /**
      * Check if a request with this idempotency key was already processed
      */
-    async checkIdempotency(
+    async checkIdempotency( 
         userId: string,
         key: string
     ): Promise<IdempotencyRecord | null> {
@@ -95,7 +97,7 @@ export class HealthService {
                 });
                 createdCount++;
             } catch (error) {
-                console.error('Failed to create measurement:', error);
+                this.logger.error('Failed to create measurement:', error);
             }
         }
 
@@ -278,7 +280,11 @@ export class HealthService {
             water_intake: 'WATER_INTAKE',
         };
 
-        return mapping[type.toLowerCase()] ?? ('STEPS' as MetricType);
+        const mapped = mapping[type.toLowerCase()];
+        if (!mapped) {
+            throw new BadRequestException(`Unsupported metric type: ${type}`);
+        }
+        return mapped;
     }
 
     private hashIdempotencyKey(userId: string, key: string): string {

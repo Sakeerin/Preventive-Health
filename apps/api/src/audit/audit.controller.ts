@@ -1,9 +1,20 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Roles, RolesGuard, SessionAuthGuard } from '../auth';
+
+interface AuditQuery {
+    page?: string;
+    limit?: string;
+    userId?: string;
+    action?: string;
+    resource?: string;
+}
 
 @Controller('audit')
+@UseGuards(SessionAuthGuard, RolesGuard)
+@Roles('admin')
 export class AuditController {
     @Get()
-    getAuditLogs(@Query() query: any) {
+    getAuditLogs(@Query() query: AuditQuery) {
         // Mocked audit logs
         return {
             data: [
@@ -25,8 +36,8 @@ export class AuditController {
                 }
             ],
             total: 2,
-            page: query.page || 1,
-            limit: query.limit || 20
+            page: query.page ? parseInt(query.page, 10) : 1,
+            limit: query.limit ? Math.min(parseInt(query.limit, 10), 100) : 20
         };
     }
 }

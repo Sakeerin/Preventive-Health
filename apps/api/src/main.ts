@@ -16,9 +16,13 @@ async function bootstrap() {
     // Apply the PII Masking layout globally
     app.useLogger(new PiiMaskingLogger());
 
-    // Enable CORS for development
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean);
+
     app.enableCors({
-        origin: ['http://localhost:3000'],
+        origin: allowedOrigins,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         credentials: true,
     });

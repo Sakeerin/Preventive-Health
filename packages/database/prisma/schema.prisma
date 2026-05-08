@@ -127,6 +127,7 @@ model Session {
   @@index([userId])
   @@index([tokenHash])
   @@index([expiresAt])
+  @@index([userId, expiresAt])
 }
 
 model DataSource {
@@ -388,6 +389,7 @@ model Provider {
 
   @@index([type, isActive])
   @@index([specialty])
+  @@index([isVerified, isActive])
 }
 
 model Booking {
